@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroShield | Advanced Threat Intelligence</title>
+    
+    <!-- Hojas de estilo y tipografías corporativas -->
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Librería para el motor de gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Capa de Superposición: Pantalla de Carga del SOC (Security Operations Center) -->
+    <div id="ai-loader" class="loader-overlay hidden">
+        <div class="loader-content">
+            <div class="cyber-spinner"></div>
+            <h3 class="gradient-text">Procesando Telemetría</h3>
+            <p>Ejecutando evaluación de lenguaje natural y árboles de decisión...</p>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- BARRA LATERAL (SIDEBAR) -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon"><i class="fa-solid fa-shield-virus"></i></div>
+                <span>NeuroShield <span class="badge-enterprise">PRO</span></span>
+            </div>
+            
+            <nav class="nav-menu mt-4">
+                <p class="nav-label">OPERACIONES (SecOps)</p>
+                <button class="nav-btn active" data-target="dashboard">
+                    <i class="fa-solid fa-chart-line"></i> Centro de Mando
+                </button>
+                <button class="nav-btn" data-target="simulador">
+                    <i class="fa-solid fa-crosshairs"></i> Sandbox de Ataques
+                </button>
+                
+                <p class="nav-label mt-4">SISTEMA</p>
+                <!-- Botón dinámico para cambiar el tema visual -->
+                <button class="nav-btn" id="theme-toggle">
+                    <i class="fa-solid fa-sun"></i> <span>Modo Claro</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile-bot">
+                    <div class="avatar-sm">
+                        <!-- Avatar generado dinámicamente -->
+                        <img src="https://ui-avatars.com/api/?name=Diego+Cuervo&background=2563eb&color=fff&bold=true" alt="User">
+                    </div>
+                    <div class="user-info-text">
+                        <span class="user-name">Diego Cuervo</span>
+                        <span class="user-role">Ingeniería de Software</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTENEDOR PRINCIPAL -->
+        <div class="main-wrapper">
+            <!-- Barra Superior (Topbar) con efecto Glassmorphism -->
+            <header class="topbar glass-effect">
+                <div class="breadcrumb" id="breadcrumb">
+                    <span class="text-muted">SecOps</span> 
+                    <i class="fa-solid fa-angle-right mx-2 text-muted" style="font-size:0.7rem"></i> 
+                    <strong class="text-glow">Centro de Mando</strong>
+                </div>
+                <div class="topbar-actions">
+                    <!-- Indicador de Red con Tooltip -->
+                    <div class="pulse-indicator tooltip-trigger">
+                        <span class="pulse-dot"></span>
+                        <span class="text-xs text-muted">Red UMB Segura</span>
+                        <div class="tooltip-box">Monitoreo de tráfico universitario activo</div>
+                    </div>
+                    <div class="divider-vertical"></div>
+                    <button class="icon-btn tooltip-trigger">
+                        <i class="fa-solid fa-code-branch"></i>
+                        <div class="tooltip-box">Repositorio GitHub (Fase 2)</div>
+                    </button>
+                </div>
+            </header>
+
+            <main class="main-content">
+                
+                <!-- ==========================================
+                     VISTA 1: DASHBOARD GLOBAL
+                =========================================== -->
+                <section id="dashboard" class="view-section active">
+                    <div class="view-header flex-between">
+                        <div>
+                            <h1 class="gradient-text">Métricas de Concientización</h1>
+                            <p>Evaluación continua de vulnerabilidades humanas mediante algoritmos predictivos.</p>
+                        </div>
+                    </div>
+
+                    <!-- Tarjetas de KPIs (Key Performance Indicators) -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card cyber-border">
+                            <div class="kpi-icon blue"><i class="fa-solid fa-radar"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Índice de Resiliencia</span>
+                                <h4>85.5% <span class="trend up"><i class="fa-solid fa-arrow-trend-up"></i> +2.4%</span></h4>
+                            </div>
+                        </div>
+                        <div class="kpi-card cyber-border">
+                            <div class="kpi-icon purple"><i class="fa-solid fa-vial-virus"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Simulaciones (Fase 2)</span>
+                                <h4>14 Escenarios</h4>
+                            </div>
+                        </div>
+                        <div class="kpi-card cyber-border">
+                            <div class="kpi-icon red"><i class="fa-solid fa-bug"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Riesgo Residual</span>
+                                <h4>14.5% <span class="trend down"><i class="fa-solid fa-arrow-trend-down"></i> -1.2%</span></h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid mt-4">
+                        
+                        <!-- TARJETA: MODELO PREDICTIVO (El círculo hiper-pulido) -->
+                        <div class="card cyber-card interactive-card">
+                            <div class="card-header-flex">
+                                <div>
+                                    <h3 class="mb-0">Modelo Predictivo (IA)</h3>
+                                    <span class="text-xs text-muted mt-1" style="display: block;">Evaluación semántica activa</span>
+                                </div>
+                                <div class="icon-pulse-wrapper tooltip-trigger">
+                                    <i class="fa-solid fa-brain text-primary"></i>
+                                    <div class="tooltip-box" style="right: 0; left: auto; transform: none;">Motor de evaluación basado en decisiones</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Gráfica Circular con SVG Matemáticamente Perfecto -->
+                            <div class="score-container">
+                                <div class="score-circle" id="vuln-score">
+                                    <svg viewBox="0 0 36 36" class="circular-chart warning">
+                                        <defs>
+                                            <linearGradient id="gradient-warning" x1="0%" y1="100%" x2="100%" y2="0%">
+                                                <stop offset="0%" stop-color="#f59e0b" />
+                                                <stop offset="100%" stop-color="#ea580c" />
+                                            </linearGradient>
+                                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                            </filter>
+                                        </defs>
+                                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="circle dynamic-stroke" 
+                                              stroke="url(#gradient-warning)"
+                                              filter="url(#glow)"
+                                              stroke-dasharray="65, 100" 
+                                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    </svg>
+                                    <div class="score-value">
+                                        <div class="number-wrapper">
+                                            <h2>65</h2><span class="percent">%</span>
+                                        </div>
+                                        <span class="score-label">Riesgo Calculado</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Umbral de Riesgo Intuitivo (Slider visual) -->
+                            <div class="risk-threshold-container mt-4">
+                                <div class="progress-labels">
+                                    <span>Exposición actual</span>
+                                    <span class="badge-soft warning dynamic-badge">Moderada</span>
+                                </div>
+                                <div class="risk-track">
+                                    <div class="risk-marker" id="risk-marker" style="left: 65%;"></div>
+                                </div>
+                                <div class="risk-axis">
+                                    <span>Seguro</span>
+                                    <span>Crítico</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- TARJETA: GRÁFICA EVOLUTIVA -->
+                        <div class="card cyber-card chart-card">
+                            <div class="card-header-flex">
+                                <h3>Curva de Aprendizaje</h3>
+                                <div class="badge-soft">Evolución Histórica</div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="vulnChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- TARJETA: FEED DE EVENTOS EN VIVO -->
+                        <div class="card cyber-card telemetry-card">
+                            <div class="card-header-flex">
+                                <h3>Feed de Eventos</h3>
+                                <span class="pulse-dot"></span>
+                            </div>
+                            <div class="live-feed" id="live-feed">
+                                <!-- Llenado dinámicamente por JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==========================================
+                     VISTA 2: SIMULADOR (SANDBOX)
+                =========================================== -->
+                <section id="simulador" class="view-section hidden">
+                    <div class="view-header flex-between">
+                        <div>
+                            <h1 class="gradient-text">Sandbox: Simulación de Ataque</h1>
+                            <p>Evalúa el siguiente escenario. Tus reacciones entrenarán el modelo de vulnerabilidad.</p>
+                        </div>
+                        <!-- Temporizador de Estrés -->
+                        <div class="timer-box" id="sim-timer">
+                            <i class="fa-regular fa-clock"></i> <span id="time-display">03:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Mockup de Navegador Web -->
+                    <div class="browser-window">
+                        <div class="browser-topbar">
+                            <div class="browser-dots"><span></span><span></span><span></span></div>
+                            <div class="browser-url"><i class="fa-solid fa-lock text-success" style="margin-right: 8px;"></i> https://mail.umb.edu.co/notificaciones</div>
+                        </div>
+                        
+                        <div class="email-client-mockup">
+                            <div class="email-toolbar">
+                                <button class="btn-toolbar tooltip-trigger">
+                                    <i class="fa-solid fa-reply"></i> Responder
+                                    <div class="tooltip-box">Acción deshabilitada por seguridad</div>
+                                </button>
+                                <!-- Herramienta Forense Avanzada -->
+                                <button class="btn-toolbar" onclick="toggleHeaders()">
+                                    <i class="fa-solid fa-code"></i> Inspeccionar Headers
+                                </button>
+                            </div>
+
+                            <!-- Panel oculto de cabeceras SMTP -->
+                            <div id="header-inspector" class="header-inspector hidden">
+                                <div class="terminal-header">
+                                    <span>Inspector de Protocolos (SMTP)</span>
+                                </div>
+                                <code>
+                                    <span class="text-danger">DKIM-Signature: FAIL (bad signature)</span><br>
+                                    <span class="text-warning">X-Spam-Level: *******</span><br>
+                                    Received: from smtp-relay.unknown.ru (192.168.1.5)<br>
+                                    Return-Path: &lt;bounces@phishing-server.net&gt;
+                                </code>
+                            </div>
+
+                            <div class="email-content">
+                                <div class="email-header">
+                                    <div class="email-row"><strong>De:</strong> ICETEX Renovaciones <span class="fake-email">&lt;soporte@icetex-renovacion-col.org&gt;</span></div>
+                                    <div class="email-row"><strong>Para:</strong> d.cuervo@umb.edu.co</div>
+                                    <div class="email-row"><strong>Asunto:</strong> <span class="urgent-text">AVISO: Suspensión de desembolso para semestre en curso</span></div>
+                                </div>
+                                <div class="email-body">
+                                    <p>Estimado estudiante,</p>
+                                    <p>Su solicitud de renovación de crédito presenta inconsistencias en la validación de identidad. El comité ha pausado temporalmente el desembolso hacia la <strong>Universidad Manuela Beltrán</strong>.</p>
+                                    <p>Para evitar la cancelación definitiva de su cupo y la generación de cobros prejurídicos, actualice su pagaré digitalizado en el siguiente portal en un plazo máximo de 4 horas:</p>
+                                    <div class="email-actions-fake">
+                                        <a href="#" class="fake-btn">Actualizar Pagaré y Credenciales</a>
+                                    </div>
+                                    <p>Este es un mensaje automático. No responda a esta dirección.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Decisiones (Respuesta a Incidentes) -->
+                    <div class="sim-controls mt-4 card cyber-card">
+                        <h3><i class="fa-solid fa-shield-halved text-primary"></i> Decisiones de Mitigación (Incident Response)</h3>
+                        <div class="action-buttons mt-3">
+                            <button class="btn btn-cyber-danger tooltip-trigger" onclick="procesarRespuesta('cae')">
+                                <i class="fa-solid fa-arrow-pointer"></i> Acceder al enlace
+                                <div class="tooltip-box">Simula caer en el engaño (Alto Riesgo)</div>
+                            </button>
+                            <button class="btn btn-cyber-warning tooltip-trigger" onclick="procesarRespuesta('ignora')">
+                                <i class="fa-solid fa-trash"></i> Eliminar correo
+                                <div class="tooltip-box">Elimina la amenaza pero omite el protocolo</div>
+                            </button>
+                            <button class="btn btn-cyber-success tooltip-trigger" onclick="procesarRespuesta('reporta')">
+                                <i class="fa-solid fa-shield-check"></i> Reportar Phishing
+                                <div class="tooltip-box">Notifica al SOC para proteger la red</div>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==========================================
+                     VISTA 3: RESULTADOS FORENSES
+                =========================================== -->
+                <section id="resultados" class="view-section hidden">
+                    <div class="view-header">
+                        <h1 class="gradient-text">Evaluación Forense de IA</h1>
+                        <p>Análisis predictivo del comportamiento humano frente a la amenaza.</p>
+                    </div>
+
+                    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                        
+                        <!-- CONSOLA: Salida del Modelo NLP -->
+                        <div class="terminal-container card">
+                            <div class="terminal-topbar">
+                                <span><i class="fa-solid fa-terminal"></i> NLP_Engine_Analysis.exe</span>
+                            </div>
+                            <div class="terminal-body" id="ai-terminal-output">
+                                <!-- El texto se genera dinámicamente con JS (Efecto Typewriter) -->
+                            </div>
+                        </div>
+
+                        <!-- RESUMEN: Tarjeta de Feedback -->
+                        <div class="card cyber-card feedback-summary">
+                            <div class="feedback-header">
+                                <div class="feedback-icon" id="feedback-icon"></div>
+                                <h2 id="feedback-title" class="mt-2">Resultado Final</h2>
+                            </div>
+                            <div class="learning-points glass-panel mt-4">
+                                <h3><i class="fa-solid fa-microscope text-primary"></i> Hallazgos de Ingeniería Social:</h3>
+                                <ul id="feedback-list">
+                                    <li><strong>Contexto Local:</strong> Explotación de procesos administrativos reales (ICETEX, UMB).</li>
+                                    <li><strong>Urgencia Extrema:</strong> Límite falso de 4 horas y amenaza de "cobros prejurídicos".</li>
+                                    <li><strong>Spoofing:</strong> Uso de dominio <code>.org</code> malicioso en lugar del oficial <code>.gov.co</code>.</li>
+                                </ul>
+                            </div>
+                            <button class="btn btn-primary w-100 mt-4" onclick="volverDashboard()">
+                                <i class="fa-solid fa-rotate-left"></i> Retornar al Centro de Mando
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+    
+    <!-- Script Principal de la Lógica de Negocio -->
+    <script src="main.js"></script>
+</body>
+</html>

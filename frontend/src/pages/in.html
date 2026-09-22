@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroShield | Capacitación en Ciberseguridad</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+        /* VARIABLES DE TEMA */
+        :root[data-theme="light"] {
+            --bg-main: #f8fafc; --surface: #ffffff; --surface-hover: #f1f5f9; --border: rgba(226, 232, 240, 0.9);
+            --text-main: #0f172a; --text-muted: #64748b; --primary: #2563eb; --primary-bg: #eff6ff;
+            --success: #059669; --success-bg: #ecfdf5; --warning: #ea580c; --warning-bg: #fff7ed;
+            --danger: #dc2626; --danger-bg: #fef2f2; --glass-bg: rgba(255, 255, 255, 0.75);
+            --shadow-sm: 0 2px 4px rgb(0 0 0 / 0.02); --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.05); --shadow-hover: 0 12px 24px -8px rgb(0 0 0 / 0.12);
+        }
+
+        :root[data-theme="dark"] {
+            --bg-main: #020617; --surface: #0f172a; --surface-hover: #1e293b; --border: #334155;
+            --text-main: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-bg: rgba(59, 130, 246, 0.1);
+            --success: #10b981; --success-bg: rgba(16, 185, 129, 0.1); --warning: #f97316; --warning-bg: rgba(249, 115, 22, 0.1);
+            --danger: #ef4444; --danger-bg: rgba(239, 68, 68, 0.1); --glass-bg: rgba(15, 23, 42, 0.75);
+            --shadow-sm: 0 2px 4px rgb(0 0 0 / 0.2); --shadow-md: 0 8px 16px -4px rgb(0 0 0 / 0.4); --shadow-hover: 0 20px 30px -10px rgb(0 0 0 / 0.6);
+        }
+
+        /* GLOBALES */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
+        body { background-color: var(--bg-main); color: var(--text-main); height: 100vh; overflow: hidden; font-size: 14px; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        
+        .gradient-text { background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .text-glow { text-shadow: 0 0 16px rgba(59, 130, 246, 0.5); }
+        .mt-3 { margin-top: 1rem; } .mt-4 { margin-top: 1.5rem; } .mb-0 { margin-bottom: 0; } .w-100 { width: 100%; }
+        .text-muted { color: var(--text-muted); } .text-primary { color: var(--primary); }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .hidden { display: none !important; }
+
+        /* PANTALLA DE LOGIN */
+        .login-wrapper { display: flex; height: 100vh; width: 100vw; align-items: center; justify-content: center; background: var(--bg-main); z-index: 100;}
+        .login-card { background: var(--surface); padding: 3rem; border-radius: 1rem; width: 420px; box-shadow: var(--shadow-hover); border: 1px solid var(--border); text-align: center; animation: slideUp 0.5s ease;}
+        .login-logo { font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem; }
+        .login-card h2 { margin-bottom: 0.5rem; font-weight: 700; font-size: 1.5rem; }
+        .login-card p { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.9rem; }
+        .form-group { text-align: left; margin-bottom: 1.25rem; }
+        .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+        .form-input { width: 100%; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main); margin-top: 0.4rem; font-size: 0.9rem; outline: none; }
+        .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-bg); }
+
+        /* LAYOUT PRINCIPAL */
+        .app-layout { display: flex; height: 100vh; width: 100vw; opacity: 0; transition: opacity 0.5s ease;}
+        .app-layout.active { opacity: 1; }
+
+        /* SIDEBAR Y TOPBAR */
+        .sidebar { width: 270px; background-color: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 2rem 1.5rem; z-index: 20; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.2rem; letter-spacing: -0.5px; }
+        .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--primary), #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.95rem;}
+        .badge-enterprise { font-size: 0.6rem; background: var(--primary-bg); color: var(--primary); padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 700; margin-left: auto;}
+        .nav-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 0.75rem; padding-left: 0.75rem; }
+        .nav-menu { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; }
+        .nav-btn { background: transparent; border: none; color: var(--text-muted); padding: 0.7rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 500; border-radius: 0.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.85rem;}
+        .nav-btn:hover { background-color: var(--surface-hover); color: var(--text-main); transform: translateX(4px); }
+        .nav-btn.active { background-color: var(--primary-bg); color: var(--primary); font-weight: 600; transform: translateX(0); }
+        .user-profile-bot { display: flex; align-items: center; gap: 0.85rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+        .avatar-sm img { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--primary); padding: 2px;}
+        .user-info-text { display: flex; flex-direction: column; }
+        .user-name { font-weight: 600; font-size: 0.85rem; }
+        .user-role { font-size: 0.7rem; color: var(--text-muted); }
+
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .glass-effect { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05); }
+        .topbar { height: 65px; display: flex; align-items: center; justify-content: space-between; padding: 0 3rem; z-index: 10; }
+        .breadcrumb { font-size: 0.85rem; font-weight: 500; }
+        .topbar-actions { display: flex; align-items: center; gap: 1.5rem; }
+        .pulse-indicator { display: flex; align-items: center; gap: 0.6rem; background: var(--surface-hover); padding: 0.4rem 1rem; border-radius: 2rem; border: 1px solid var(--border); font-size: 0.75rem; font-weight: 600; }
+        .pulse-dot { width: 8px; height: 8px; background-color: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); } 70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+        .icon-btn { background: var(--surface-hover); border: 1px solid var(--border); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-main); cursor: pointer;}
+        .icon-btn:hover { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); }
+
+        /* DASHBOARD Y TARJETAS */
+        .main-content { padding: 2.5rem 3rem; overflow-y: auto; flex: 1; scroll-behavior: smooth; }
+        .view-section { display: none; animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); max-width: 1300px; margin: 0 auto; }
+        .view-section.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .view-header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.25rem; }
+        .view-header p { font-size: 0.95rem; color: var(--text-muted); }
+        
+        .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
+        .cyber-border { border: 1px solid var(--border); border-radius: 1rem; background: var(--surface); padding: 1.5rem; display: flex; align-items: center; gap: 1.25rem; box-shadow: var(--shadow-sm);}
+        .kpi-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+        .kpi-icon.blue { background: var(--primary-bg); color: var(--primary); }
+        .kpi-icon.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+        .kpi-icon.red { background: var(--danger-bg); color: var(--danger); }
+        .kpi-data .kpi-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-data h4 { font-size: 1.4rem; font-weight: 700; color: var(--text-main); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.5rem; letter-spacing: -0.5px; }
+
+        /* GRID AJUSTADO (2 COLUMNAS) */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem; }
+        
+        .card { background-color: var(--surface); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; box-shadow: var(--shadow-md); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .interactive-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+        .card-header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+        .card h3 { font-size: 1.05rem; font-weight: 600; color: var(--text-main); letter-spacing: -0.3px; }
+        .badge-soft { font-size: 0.75rem; font-weight: 600; background: var(--surface-hover); color: var(--text-muted); padding: 0.3rem 0.7rem; border-radius: 6px; border: 1px solid var(--border); }
+
+        /* MODELO PREDICTIVO */
+        .score-container { display: flex; justify-content: center; align-items: center; margin: 0.5rem 0 1.5rem 0; position: relative;}
+        .score-circle { position: relative; width: 180px; height: 180px; }
+        .circular-chart { display: block; margin: 0 auto; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .circle-bg { fill: none; stroke: var(--surface-hover); stroke-width: 1.2; }
+        .circle { fill: none; stroke-width: 2.5; stroke-linecap: round; transition: stroke-dasharray 1.5s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.5s ease; }
+        .score-value { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .number-wrapper { display: flex; align-items: flex-start; justify-content: center; margin-bottom: 2px;}
+        .number-wrapper h2 { font-family: 'JetBrains Mono', monospace; font-size: 4rem; font-weight: 700; color: var(--text-main); line-height: 1; letter-spacing: -3px; text-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .number-wrapper .percent { font-size: 1.25rem; font-weight: 600; color: var(--text-muted); margin-left: 4px; margin-top: 6px;}
+        .score-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-top: 4px;}
+
+        .risk-threshold-container { width: 100%; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+        .progress-labels { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.75rem; }
+        .risk-track { height: 8px; width: 100%; background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #dc2626 100%); border-radius: 4px; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); }
+        .risk-marker { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 18px; height: 18px; background: var(--surface); border: 3px solid var(--text-main); border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.4); transition: left 1.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .risk-axis { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin-top: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+        .chart-container { position: relative; height: 260px; width: 100%; margin-top: 1rem;}
+
+        /* SIMULADOR (SANDBOX Y BROWSER MOCKUP) */
+        .timer-box { font-size: 1.2rem; font-weight: 700; background: var(--surface); border: 1px solid var(--danger); color: var(--danger); padding: 0.4rem 1.25rem; border-radius: 0.5rem; font-family: 'JetBrains Mono', monospace; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15); animation: pulseDanger 2s infinite; }
+        @keyframes pulseDanger { 0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.3); } 70% { box-shadow: 0 0 0 6px rgba(220,38,38,0); } 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); } }
+        .browser-window { border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden; background: var(--surface); margin-top: 1.5rem; box-shadow: var(--shadow-md); }
+        .browser-topbar { background: var(--surface-hover); padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 1.25rem; border-bottom: 1px solid var(--border); }
+        .browser-dots { display: flex; gap: 0.5rem; }
+        .browser-dots span { width: 12px; height: 12px; border-radius: 50%; }
+        .browser-dots span:nth-child(1) { background: #ff5f56; } .browser-dots span:nth-child(2) { background: #ffbd2e; } .browser-dots span:nth-child(3) { background: #27c93f; }
+        .browser-url { flex: 1; background: var(--surface); padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; color: var(--text-muted); border: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .email-toolbar { display: flex; gap: 0.5rem; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); }
+        .btn-toolbar { background: var(--surface-hover); border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: 0.3rem; font-size: 0.8rem; cursor: pointer; color: var(--text-main); font-weight: 500;}
+        .email-content { padding: 0; }
+        .email-header { padding: 1.5rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; background: var(--surface-hover);}
+        .email-row { margin-bottom: 0.5rem; color: var(--text-muted); }
+        .email-row strong { color: var(--text-main); display: inline-block; width: 70px; font-weight: 600;}
+        .fake-email { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: var(--danger-bg); color: var(--danger); padding: 0.2rem 0.4rem; border-radius: 4px; }
+        .urgent-text { color: var(--danger); font-weight: 600; }
+        .email-body { padding: 3rem; line-height: 1.8; font-size: 0.95rem; color: var(--text-main); }
+        .email-actions-fake { text-align: center; margin: 2.5rem 0; }
+        .fake-btn { background-color: #2563eb; color: white; padding: 0.8rem 2.5rem; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); display: inline-block;}
+
+        /* BOTONES DE ACCIÓN */
+        .action-buttons { display: flex; justify-content: center; gap: 1.25rem; }
+        .btn { padding: 0.8rem 1.5rem; border: none; border-radius: 0.5rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;}
+        .btn-primary { background-color: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+        .btn-cyber-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-cyber-warning { background: var(--surface-hover); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-cyber-success { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
+
+        /* VISTA FORENSE: TERMINAL IA Y RESULTADOS */
+        .header-inspector { background: #020617; color: #a5b4fc; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; border-bottom: 1px solid var(--border); }
+        .terminal-header { background: #1e293b; padding: 0.4rem 1.25rem; font-size: 0.75rem; color: #94a3b8; letter-spacing: 0.5px;}
+        .header-inspector code { display: block; padding: 1.25rem; line-height: 1.6; }
+        
+        .terminal-container { background: #020617; border-radius: 0.75rem; overflow: hidden; border: 1px solid #334155; box-shadow: var(--shadow-hover); height: 100%;}
+        .terminal-topbar { background: #0f172a; padding: 0.75rem 1.25rem; border-bottom: 1px solid #334155; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #94a3b8; }
+        .terminal-body { padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #22c55e; line-height: 1.8; height: 350px; overflow-y: auto; }
+        .terminal-body p { margin-bottom: 0.5rem; }
+        .terminal-body .error { color: #ef4444; }
+        .terminal-body .warn { color: #f97316; }
+        .cursor { display: inline-block; width: 8px; height: 16px; background: #22c55e; animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 4px;}
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .feedback-summary { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 2.5rem;}
+        .feedback-icon { font-size: 4rem; margin-bottom: 0.5rem; }
+        .glass-panel { background: var(--surface-hover); border: 1px solid var(--border); padding: 1.75rem; border-radius: 0.75rem; text-align: left; width: 100%; position: relative; overflow: hidden;}
+        .glass-panel::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); }
+        .glass-panel h3 { font-size: 0.95rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;}
+        .glass-panel li { margin-left: 1.5rem; margin-bottom: 0.75rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;}
+
+        /* PANTALLA DE CARGA (LOADER SOC) */
+        .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.4s ease; }
+        .loader-content { text-align: center; }
+        .loader-content h3 { margin-top: 1.5rem; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.5px;}
+        .loader-content p { font-size: 0.9rem; margin-top: 0.5rem; color: var(--text-muted);}
+        .cyber-spinner { width: 60px; height: 60px; border: 3px solid transparent; border-top-color: var(--primary); border-bottom-color: #8b5cf6; border-radius: 50%; animation: spin 1s infinite; margin: 0 auto; position: relative; }
+        .cyber-spinner::after { content: ''; position: absolute; top: 6px; left: 6px; right: 6px; bottom: 6px; border: 3px solid transparent; border-left-color: var(--primary); border-right-color: #8b5cf6; border-radius: 50%; animation: spin 0.5s infinite reverse; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- 1. PANTALLA DE INICIO DE SESIÓN -->
+    <div id="login-view" class="login-wrapper">
+        <div class="login-card">
+            <div class="login-logo"><i class="fa-solid fa-shield-virus"></i></div>
+            <h2>NeuroShield Pro</h2>
+            <p>Plataforma de Capacitación y Simulación</p>
+            <form onsubmit="procesarLogin(event)">
+                <div class="form-group">
+                    <label>Correo Institucional</label>
+                    <input type="email" class="form-input" placeholder="usuario@umb.edu.co" required value="d.cuervo@umb.edu.co">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" class="form-input" placeholder="••••••••" required value="123456">
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-3" style="padding: 0.85rem;"><i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión</button>
+            </form>
+            <p style="margin-top: 1.5rem; font-size: 0.75rem;">Protegido por Arquitectura de Seguridad Fase 2</p>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE CARGA DEL SOC -->
+    <div id="ai-loader" class="loader-overlay hidden">
+        <div class="loader-content">
+            <div class="cyber-spinner"></div>
+            <h3 class="gradient-text">Procesando Telemetría</h3>
+            <p>Ejecutando evaluación de lenguaje natural y árboles de decisión...</p>
+        </div>
+    </div>
+
+    <!-- 2. LAYOUT PRINCIPAL DEL SISTEMA (Oculto inicialmente) -->
+    <div id="app-layout" class="app-layout hidden">
+        <!-- BARRA LATERAL (SIDEBAR) -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon"><i class="fa-solid fa-shield-virus"></i></div>
+                <span>NeuroShield <span class="badge-enterprise">PRO</span></span>
+            </div>
+            
+            <nav class="nav-menu mt-4">
+                <p class="nav-label">OPERACIONES (SecOps)</p>
+                <button class="nav-btn active" data-target="dashboard"><i class="fa-solid fa-chart-line"></i> Centro de Mando</button>
+                <button class="nav-btn" data-target="simulador"><i class="fa-solid fa-crosshairs"></i> Sandbox de Ataques</button>
+                
+                <p class="nav-label mt-4">SISTEMA</p>
+                <button class="nav-btn" id="theme-toggle"><i class="fa-solid fa-sun"></i> <span>Modo Claro</span></button>
+                <button class="nav-btn" onclick="cerrarSesion()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Cerrar Sesión</button>
+            </nav>
+
+            <div class="sidebar-footer" style="margin-top: auto;">
+                <div class="user-profile-bot">
+                    <div class="avatar-sm"><img src="https://ui-avatars.com/api/?name=Diego+Cuervo&background=2563eb&color=fff&bold=true" alt="User"></div>
+                    <div class="user-info-text">
+                        <span class="user-name">Diego Cuervo</span>
+                        <span class="user-role">Usuario Administrador</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTENEDOR PRINCIPAL -->
+        <div class="main-wrapper">
+            <!-- Barra Superior (Topbar) -->
+            <header class="topbar glass-effect">
+                <div class="breadcrumb" id="breadcrumb">
+                    <span class="text-muted">SecOps</span> 
+                    <i class="fa-solid fa-angle-right mx-2 text-muted" style="font-size:0.7rem"></i> 
+                    <strong class="text-glow">Centro de Mando</strong>
+                </div>
+                <div class="topbar-actions">
+                    <div class="pulse-indicator">
+                        <span class="pulse-dot"></span>
+                        <span class="text-xs text-muted">Red UMB Segura</span>
+                    </div>
+                    <div class="divider-vertical"></div>
+                    <button class="icon-btn"><i class="fa-solid fa-code-branch"></i></button>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <!-- VISTA 1: DASHBOARD GLOBAL -->
+                <section id="dashboard" class="view-section active">
+                    <div class="view-header flex-between">
+                        <div>
+                            <h1 class="gradient-text">Métricas de Concientización</h1>
+                            <p>Evaluación continua de vulnerabilidades humanas mediante algoritmos predictivos.</p>
+                        </div>
+                    </div>
+
+                    <div class="kpi-grid">
+                        <div class="kpi-card cyber-border">
+                            <div class="kpi-icon blue"><i class="fa-solid fa-radar"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Índice de Resiliencia</span>
+                                <h4>85.5% <span style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--success-bg); color: var(--success); margin-left: 8px;"><i class="fa-solid fa-arrow-trend-up"></i> +2.4%</span></h4>
+                            </div>
+                        </div>
+                        <div class="kpi-card cyber-border">
+                            <div class="kpi-icon purple"><i class="fa-solid fa-vial-virus"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Simulaciones (Fase 2)</span>
+                                <h4>14 Escenarios</h4>
+                            </div>
+                        </div>
+                        <div class="kpi-card cyber-border">
+                            <div class="kpi-icon red"><i class="fa-solid fa-bug"></i></div>
+                            <div class="kpi-data">
+                                <span class="kpi-label">Riesgo Residual</span>
+                                <h4>14.5% <span style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--danger-bg); color: var(--danger); margin-left: 8px;"><i class="fa-solid fa-arrow-trend-down"></i> -1.2%</span></h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GRID AJUSTADO A 2 COLUMNAS (Sin Feed de Eventos) -->
+                    <div class="dashboard-grid mt-4">
+                        <div class="card cyber-card interactive-card">
+                            <div class="card-header-flex">
+                                <div>
+                                    <h3 class="mb-0">Modelo Predictivo (IA)</h3>
+                                    <span class="text-xs text-muted mt-1" style="display: block;">Evaluación semántica activa</span>
+                                </div>
+                                <div><i class="fa-solid fa-brain text-primary" style="font-size:1.2rem;"></i></div>
+                            </div>
+                            
+                            <div class="score-container">
+                                <div class="score-circle" id="vuln-score">
+                                    <svg viewBox="0 0 36 36" class="circular-chart warning">
+                                        <defs>
+                                            <linearGradient id="gradient-warning" x1="0%" y1="100%" x2="100%" y2="0%">
+                                                <stop offset="0%" stop-color="#f59e0b" /><stop offset="100%" stop-color="#ea580c" />
+                                            </linearGradient>
+                                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                                <feGaussianBlur stdDeviation="1.5" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                            </filter>
+                                        </defs>
+                                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="circle dynamic-stroke" stroke="url(#gradient-warning)" filter="url(#glow)" stroke-dasharray="65, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    </svg>
+                                    <div class="score-value">
+                                        <div class="number-wrapper"><h2>65</h2><span class="percent">%</span></div>
+                                        <span class="score-label">Riesgo Calculado</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="risk-threshold-container mt-4">
+                                <div class="progress-labels">
+                                    <span>Exposición actual</span>
+                                    <span class="badge-soft warning dynamic-badge" id="risk-badge" style="color:var(--warning); background-color:var(--warning-bg);">Moderada</span>
+                                </div>
+                                <div class="risk-track">
+                                    <div class="risk-marker" id="risk-marker" style="left: 65%;"></div>
+                                </div>
+                                <div class="risk-axis"><span>Seguro</span><span>Crítico</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="card cyber-card chart-card">
+                            <div class="card-header-flex">
+                                <h3>Curva de Aprendizaje</h3>
+                                <div class="badge-soft">Evolución Histórica</div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="vulnChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VISTA 2: SIMULADOR (SANDBOX) -->
+                <section id="simulador" class="view-section hidden">
+                    <div class="view-header flex-between">
+                        <div>
+                            <h1 class="gradient-text">Sandbox: Simulación de Ataque</h1>
+                            <p>Evalúa el siguiente escenario. Tus reacciones entrenarán el modelo de vulnerabilidad.</p>
+                        </div>
+                        <div class="timer-box" id="sim-timer">
+                            <i class="fa-regular fa-clock"></i> <span id="time-display">03:00</span>
+                        </div>
+                    </div>
+
+                    <div class="browser-window">
+                        <div class="browser-topbar">
+                            <div class="browser-dots"><span></span><span></span><span></span></div>
+                            <div class="browser-url"><i class="fa-solid fa-lock text-success" style="margin-right: 8px;"></i> https://mail.umb.edu.co/notificaciones</div>
+                        </div>
+                        
+                        <div class="email-client-mockup">
+                            <div class="email-toolbar">
+                                <button class="btn-toolbar"><i class="fa-solid fa-reply"></i> Responder</button>
+                                <button class="btn-toolbar" onclick="toggleHeaders()"><i class="fa-solid fa-code"></i> Inspeccionar Headers</button>
+                            </div>
+
+                            <div id="header-inspector" class="header-inspector hidden">
+                                <div class="terminal-header"><span>Inspector de Protocolos (SMTP)</span></div>
+                                <code>
+                                    <span class="text-danger">DKIM-Signature: FAIL (bad signature)</span><br>
+                                    <span class="text-warning">X-Spam-Level: *******</span><br>
+                                    Received: from smtp-relay.unknown.ru (192.168.1.5)<br>
+                                    Return-Path: &lt;bounces@phishing-server.net&gt;
+                                </code>
+                            </div>
+
+                            <div class="email-content">
+                                <div class="email-header">
+                                    <div class="email-row"><strong>De:</strong> ICETEX Renovaciones <span class="fake-email">&lt;soporte@icetex-renovacion-col.org&gt;</span></div>
+                                    <div class="email-row"><strong>Para:</strong> d.cuervo@umb.edu.co</div>
+                                    <div class="email-row"><strong>Asunto:</strong> <span class="urgent-text">AVISO: Suspensión de desembolso para semestre en curso</span></div>
+                                </div>
+                                <div class="email-body">
+                                    <p>Estimado estudiante,</p>
+                                    <p>Su solicitud de renovación de crédito presenta inconsistencias en la validación de identidad. El comité ha pausado temporalmente el desembolso hacia la <strong>Universidad Manuela Beltrán</strong>.</p>
+                                    <p>Para evitar la cancelación definitiva de su cupo y la generación de cobros prejurídicos, actualice su pagaré digitalizado en el siguiente portal en un plazo máximo de 4 horas:</p>
+                                    <div class="email-actions-fake">
+                                        <a href="#" class="fake-btn">Actualizar Pagaré y Credenciales</a>
+                                    </div>
+                                    <p>Este es un mensaje automático. No responda a esta dirección.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sim-controls mt-4 card cyber-card" style="text-align: center;">
+                        <h3><i class="fa-solid fa-shield-halved text-primary"></i> Decisiones de Mitigación (Incident Response)</h3>
+                        <div class="action-buttons mt-3">
+                            <button class="btn btn-cyber-danger" onclick="procesarRespuesta('cae')"><i class="fa-solid fa-arrow-pointer"></i> Acceder al enlace</button>
+                            <button class="btn btn-cyber-warning" onclick="procesarRespuesta('ignora')"><i class="fa-solid fa-trash"></i> Eliminar correo</button>
+                            <button class="btn btn-cyber-success" onclick="procesarRespuesta('reporta')"><i class="fa-solid fa-shield-check"></i> Reportar Phishing</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VISTA 3: RESULTADOS FORENSES -->
+                <section id="resultados" class="view-section hidden">
+                    <div class="view-header">
+                        <h1 class="gradient-text">Evaluación Forense de IA</h1>
+                        <p>Análisis predictivo del comportamiento humano frente a la amenaza.</p>
+                    </div>
+
+                    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="terminal-container card" style="padding:0;">
+                            <div class="terminal-topbar"><span><i class="fa-solid fa-terminal"></i> NLP_Engine_Analysis.exe</span></div>
+                            <div class="terminal-body" id="ai-terminal-output"></div>
+                        </div>
+
+                        <div class="card cyber-card feedback-summary">
+                            <div class="feedback-header" style="text-align:center;">
+                                <div class="feedback-icon" id="feedback-icon"></div>
+                                <h2 id="feedback-title" class="mt-2">Resultado Final</h2>
+                            </div>
+                            <div class="learning-points glass-panel mt-4">
+                                <h3><i class="fa-solid fa-microscope text-primary"></i> Hallazgos de Ingeniería Social:</h3>
+                                <ul id="feedback-list">
+                                    <li><strong>Contexto Local:</strong> Explotación de procesos administrativos (ICETEX).</li>
+                                    <li><strong>Urgencia Extrema:</strong> Límite falso de 4 horas y amenaza prejurídica.</li>
+                                    <li><strong>Spoofing:</strong> Uso de dominio malicioso <code>.org</code>.</li>
+                                </ul>
+                            </div>
+                            <button class="btn btn-primary w-100 mt-4" onclick="volverDashboard()"><i class="fa-solid fa-rotate-left"></i> Retornar al Centro de Mando</button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+    
+    <!-- LÓGICA JAVASCRIPT -->
+    <script>
+        let historicoPuntajes = [85, 78, 85, 65]; 
+        let vulnerabilidadBase = historicoPuntajes[historicoPuntajes.length - 1];
+        let miGrafico;
+        let timerInterval;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            configurarTema();
+            configurarNavegacion();
+            inicializarGrafico();
+            actualizarDashboard(vulnerabilidadBase, 'warning', 'Moderada', false);
+        });
+
+        /* LOGIN / LOGOUT */
+        function procesarLogin(e) {
+            e.preventDefault();
+            document.getElementById('login-view').classList.add('hidden');
+            const layout = document.getElementById('app-layout');
+            layout.classList.remove('hidden');
+            setTimeout(() => layout.classList.add('active'), 50); // Efecto fade in
+        }
+
+        function cerrarSesion() {
+            document.getElementById('app-layout').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('app-layout').classList.add('hidden');
+                document.getElementById('login-view').classList.remove('hidden');
+            }, 500);
+            document.querySelector('.nav-btn[data-target="dashboard"]').click(); // Reset vista
+        }
+
+        /* TEMA OSCURO/CLARO */
+        function configurarTema() {
+            const themeBtn = document.getElementById('theme-toggle');
+            const htmlElement = document.documentElement;
+            const icon = themeBtn.querySelector('i');
+            const text = themeBtn.querySelector('span');
+
+            const currentTheme = localStorage.getItem('theme') || 'dark';
+            htmlElement.setAttribute('data-theme', currentTheme);
+            actualizarIconoTema(currentTheme, icon, text);
+
+            themeBtn.addEventListener('click', () => {
+                const newTheme = htmlElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                htmlElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                actualizarIconoTema(newTheme, icon, text);
+                if(miGrafico) { miGrafico.destroy(); inicializarGrafico(); }
+            });
+        }
+
+        function actualizarIconoTema(theme, icon, text) {
+            if (theme === 'dark') { icon.className = 'fa-solid fa-sun'; text.innerText = 'Modo Claro'; } 
+            else { icon.className = 'fa-solid fa-moon'; text.innerText = 'Modo Oscuro'; }
+        }
+
+        /* NAVEGACIÓN Y ENRUTAMIENTO */
+        function configurarNavegacion() {
+            const navButtons = document.querySelectorAll('.nav-btn:not(#theme-toggle):not([onclick="cerrarSesion()"])');
+            const vistas = document.querySelectorAll('.view-section');
+            const breadcrumb = document.getElementById('breadcrumb');
+
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    navButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    const targetId = btn.getAttribute('data-target');
+                    const nombreVista = targetId === 'dashboard' ? 'Centro de Mando' : 'Sandbox de Ataques';
+                    breadcrumb.innerHTML = `<span class="text-muted">SecOps</span> <i class="fa-solid fa-angle-right mx-2 text-muted" style="font-size:0.7rem"></i> <strong class="text-glow">${nombreVista}</strong>`;
+
+                    vistas.forEach(vista => {
+                        if(vista.id === targetId) {
+                            vista.classList.remove('hidden');
+                            vista.classList.add('active');
+                            if(targetId === 'simulador') iniciarTimer();
+                        } else {
+                            vista.classList.remove('active');
+                            vista.classList.add('hidden');
+                            if(targetId !== 'simulador') detenerTimer();
+                        }
+                    });
+                });
+            });
+        }
+
+        /* MOTOR DE GRÁFICAS */
+        function inicializarGrafico() {
+            const ctx = document.getElementById('vulnChart').getContext('2d');
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const gridColor = isDark ? '#334155' : 'rgba(226, 232, 240, 0.8)';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+
+            let gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, 'rgba(37, 99, 235, 0.25)');   
+            gradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
+
+            miGrafico = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['M1', 'M2', 'M3', 'Actual'],
+                    datasets: [{ data: historicoPuntajes, borderColor: '#2563eb', backgroundColor: gradient, borderWidth: 2, tension: 0.4, fill: true, pointBackgroundColor: isDark ? '#0f172a' : '#ffffff', pointBorderColor: '#2563eb', pointRadius: 4 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor, padding: 10 } },
+                        x: { grid: { display: false }, ticks: { color: textColor, padding: 10 } }
+                    }
+                }
+            });
+        }
+
+        /* TEMPORIZADOR Y UTILIDADES */
+        function iniciarTimer() {
+            detenerTimer();
+            let tiempo = 180;
+            const display = document.getElementById('time-display');
+            timerInterval = setInterval(() => {
+                let min = parseInt(tiempo / 60, 10);
+                let seg = parseInt(tiempo % 60, 10);
+                display.textContent = `${min < 10 ? "0"+min : min}:${seg < 10 ? "0"+seg : seg}`;
+                if (--tiempo < 0) { detenerTimer(); procesarRespuesta('tiempo'); }
+            }, 1000);
+        }
+        function detenerTimer() { clearInterval(timerInterval); document.getElementById('time-display').textContent = "03:00"; }
+        function toggleHeaders() { document.getElementById('header-inspector').classList.toggle('hidden'); }
+
+        /* LÓGICA FORENSE Y RESULTADOS */
+        function procesarRespuesta(accionUsuario) {
+            detenerTimer();
+            const loader = document.getElementById('ai-loader');
+            loader.classList.remove('hidden');
+
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                document.getElementById('simulador').classList.remove('active');
+                document.getElementById('simulador').classList.add('hidden');
+                document.getElementById('resultados').classList.remove('hidden');
+                document.getElementById('resultados').classList.add('active');
+                document.getElementById('breadcrumb').innerHTML = `<span class="text-muted">SecOps</span> <i class="fa-solid fa-angle-right mx-2 text-muted" style="font-size:0.7rem"></i> <span class="text-muted">Laboratorio</span> <i class="fa-solid fa-angle-right mx-2 text-muted" style="font-size:0.7rem"></i> <strong class="text-glow">Reporte Forense</strong>`;
+                
+                ejecutarAnalisisForenseVisual(accionUsuario);
+            }, 2500);
+        }
+
+        function ejecutarAnalisisForenseVisual(accion) {
+            const terminal = document.getElementById('ai-terminal-output');
+            terminal.innerHTML = ''; 
+            
+            let lineas = [
+                "[SYS] Conectando con NeuroShield_AI_Engine...",
+                "[IA] Cargando modelo NLP (DistilBERT Español_CO)...",
+                "[IA] Analizando vector de ataque: Phishing Contextual (ICETEX / UMB).",
+                "[IA] Evaluando nodo de decisión del usuario en Capa Lógica..."
+            ];
+
+            let nuevoRiesgo = vulnerabilidadBase; let tipoColor = ''; let etiqueta = '';
+
+            if (accion === 'cae') {
+                lineas.push("<span class='error'>[CRÍTICO] Infracción de Capa 8. Usuario ejecutó un payload malicioso.</span>");
+                lineas.push("[IA] Re-calculando pesos sinápticos: Impacto Severo.");
+                nuevoRiesgo += 25; tipoColor = 'danger'; etiqueta = 'Crítica';
+            } else if (accion === 'ignora' || accion === 'tiempo') {
+                lineas.push(`<span class='warn'>[WARN] Interacción evitada. Omisión de protocolo (Carencia de reporte SOC).</span>`);
+                lineas.push("[IA] Re-calculando pesos sinápticos: Impacto Leve.");
+                nuevoRiesgo -= 5; tipoColor = 'warning'; etiqueta = 'Moderada';
+            } else {
+                lineas.push("[OK] Envío de telemetría al SOC exitoso. Dominio falso en lista negra.");
+                lineas.push("[IA] Re-calculando pesos sinápticos: Refuerzo Positivo.");
+                nuevoRiesgo -= 30; tipoColor = 'success'; etiqueta = 'Segura';
+            }
+            
+            nuevoRiesgo = Math.max(0, Math.min(100, nuevoRiesgo));
+            lineas.push(`[IA] Riesgo residual consolidado: ${nuevoRiesgo}%.`);
+            lineas.push("[SYS] Fin de la transmisión forense.");
+
+            let delay = 0;
+            lineas.forEach((linea, index) => {
+                setTimeout(() => {
+                    terminal.innerHTML += `<p>${linea}</p>`;
+                    if (index === lineas.length - 1) {
+                        terminal.innerHTML += `<div class="cursor"></div>`;
+                        actualizarDashboard(nuevoRiesgo, tipoColor, etiqueta, true);
+                    }
+                    terminal.scrollTop = terminal.scrollHeight;
+                }, delay);
+                delay += 750; 
+            });
+        }
+
+        function actualizarDashboard(valor, tipoColor, etiqueta, actualizarGrafica = true) {
+            const circle = document.querySelector('.circle');
+            const valueTxt = document.querySelector('.number-wrapper h2');
+            
+            if (tipoColor === 'danger') circle.style.stroke = 'var(--danger)';
+            else if (tipoColor === 'success') circle.style.stroke = 'var(--success)';
+            else circle.style.stroke = 'url(#gradient-warning)';
+
+            setTimeout(() => {
+                circle.style.strokeDasharray = `${valor}, 100`;
+                let start = vulnerabilidadBase;
+                const diff = valor - start;
+                const startTime = performance.now();
+
+                function step(timestamp) {
+                    const progress = Math.min((timestamp - startTime) / 500, 1);
+                    valueTxt.innerText = Math.floor(start + (diff * progress));
+                    if (progress < 1) requestAnimationFrame(step);
+                    else valueTxt.innerText = valor;
+                }
+                requestAnimationFrame(step);
+            }, 150);
+
+            const marker = document.getElementById('risk-marker');
+            const badge = document.getElementById('risk-badge');
+            
+            marker.style.left = `${valor}%`;
+            badge.innerText = etiqueta;
+            
+            if (tipoColor === 'danger') { badge.style.color = 'var(--danger)'; badge.style.backgroundColor = 'var(--danger-bg)'; }
+            else if (tipoColor === 'success') { badge.style.color = 'var(--success)'; badge.style.backgroundColor = 'var(--success-bg)'; }
+            else { badge.style.color = 'var(--warning)'; badge.style.backgroundColor = 'var(--warning-bg)'; }
+
+            if(actualizarGrafica && miGrafico && valor !== vulnerabilidadBase) {
+                miGrafico.data.labels.push('Sim. N2');
+                miGrafico.data.datasets[0].data.push(valor);
+                miGrafico.update();
+                vulnerabilidadBase = valor;
+            }
+        }
+
+        function volverDashboard() { document.querySelector('.nav-btn[data-target="dashboard"]').click(); }
+    </script>
+</body>
+</html>
