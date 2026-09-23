@@ -35,12 +35,12 @@ AR_SOFT_A2_NeuroShield/
 │   └── controllers/
 │       └── app.js           # (C) Enrutador principal y conexión Modelo-Vista
 └── Diagramas/
-    ├── Diagrama de casos de uso.png
-    ├── Diagrama de clases.png
-    ├── Diagrama de componentes.png
-    ├── diagrama.png
-    ├── Modelo MVC.png
-    └── Modelo relacional.png
+    ├── Diagrama de casos de uso.jpeg
+    ├── Diagrama de clases.jpeg
+    ├── Diagrama de componentes.jpeg
+    ├── Diagrama.jpeg
+    ├── Modelo MVC.jpeg
+    └── Modelo relacional.jpeg
 ```
 
 ## Cómo ejecutar
@@ -61,28 +61,22 @@ Durante la evaluación en el Sandbox, el Controlador consulta al Modelo para sim
 ## Diagramas del proyecto
 
 ### Diagrama de casos de uso
-
-![Diagrama de casos de uso](Diagramas/Diagrama%20de%20casos%20de%20uso.png)
+![Diagrama de casos de uso](Diagramas/Diagrama%20de%20casos%20de%20uso.jpeg)
 
 ### Diagrama de clases
-
-![Diagrama de clases](Diagramas/Diagrama%20de%20clases.png)
+![Diagrama de clases](Diagramas/Diagrama%20de%20clases.jpeg)
 
 ### Diagrama de componentes
-
-![Diagrama de componentes](Diagramas/Diagrama%20de%20componentes.png)
+![Diagrama de componentes](Diagramas/Diagrama%20de%20componentes.jpeg)
 
 ### Arquitectura del software
-
-![Arquitectura del software](Diagramas/diagrama.png)
+![Arquitectura del software](Diagramas/Diagrama.jpeg)
 
 ### Modelo MVC
-
-![Modelo MVC](Diagramas/Modelo%20MVC.png)
+![Modelo MVC](Diagramas/Modelo%20MVC.jpeg)
 
 ### Modelo relacional
-
-![Modelo relacional](Diagramas/Modelo%20relacional.png)
+![Modelo relacional](Diagramas/Modelo%20relacional.jpeg)
 
 ## Próximos pasos (Fases posteriores)
 
