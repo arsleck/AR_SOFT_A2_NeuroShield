@@ -69,9 +69,6 @@ Durante la evaluación en el Sandbox, el Controlador consulta al Modelo para sim
 ### Diagrama de componentes
 ![Diagrama de componentes](Diagramas/Diagrama%20de%20componentes.jpeg)
 
-### Arquitectura del software
-![Arquitectura del software](Diagramas/Diagrama.jpeg)
-
 ### Modelo MVC
 ![Modelo MVC](Diagramas/Modelo%20MVC.jpeg)
 
