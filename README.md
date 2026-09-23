@@ -1,198 +1,91 @@
-# CiberSim — Simulador inteligente de escenarios de ciberataques para la capacitación en ciberseguridad
+# NeuroShield — Fase 2: Prototipo Estructurado
 
-Proyecto de **Arquitectura de Software** · Ingeniería de Software · Universidad Manuela Beltrán
-Autores: Diego Nicolás Cuervo Ochoa y Karen Tatiana Chaves Bonilla · Docente: Ing. Jamilton Fernando Benavides
+**Proyecto:** Simulador inteligente de escenarios de ciberataques para la capacitación en ciberseguridad  
+**Asignatura:** Arquitectura de Software - Universidad Manuela Beltrán  
+**Autores:** Diego Nicolas Cuervo Ochoa, Karen Tatiana Chaves Bonilla  
 
-## Estado actual del proyecto (Fase 2)
+---
 
-El proyecto se encuentra en la etapa de **prototipo estructurado**. Se implementó la interfaz gráfica completa (Frontend) con navegación tipo SPA (Single Page Application) por hash, una capa de lógica de negocio (Modelo/Controlador), simulación de un motor de IA mediante reglas heurísticas, y un panel de **Trazas MVC** que expone en vivo qué capa atiende cada acción del usuario.
+## Descripción del avance
 
-El código ya está organizado en las 5 capas de la arquitectura definida en la Fase 1 (interfaz, lógica de negocio, motor de IA, acceso a datos y base de datos), como carpetas separadas dentro de un mismo proyecto front-end, preparando el terreno para separar Frontend y Backend en las fases siguientes sin tener que rehacer vistas ni controladores.
+Este prototipo evoluciona la propuesta de la Fase 1 hacia una estructura de software organizada estrictamente bajo el patrón **MVC (Modelo-Vista-Controlador)** en el entorno del cliente (Frontend). Se materializa la interfaz de usuario, la navegación dinámica y la simulación de la lógica de evaluación (Motor de IA) mediante reglas estandarizadas, aislando completamente el manejo de datos de la manipulación visual.
 
-**Para probar el prototipo actual:** abre `index.html` en cualquier navegador (no requiere instalación ni servidor; necesita conexión a internet solo para cargar la tipografía y los iconos de Icons8).
+## Qué incluye esta fase
 
-## Contexto del proyecto
+* **Pantallas:** Acceso (Login), Mi Progreso (Dashboard predictivo), Sandbox de Ataques (Simulador ICETEX) y Reporte Forense (Resultados).
+* **Navegación SPA Real:** Transiciones dinámicas entre pantallas mediante el uso de rutas de hash (`#/login`, `#/dashboard`, `#/simulador`, `#/resultados`).
+* **Arquitectura MVC Estricta:** Separación absoluta de responsabilidades:
+  * **Modelo (`js/models/data.js`):** Gestión del estado, historial y métricas del usuario.
+  * **Vista (`js/views/ui.js`):** Renderizado del DOM, gráficas de Chart.js y estilos, sin contener ninguna lógica de negocio.
+  * **Controlador (`js/controllers/app.js`):** Enrutador principal, temporizadores y procesamiento de eventos de usuario.
+* **Datos en memoria (Mock Data):** Simulación del perfil del usuario y su historial de aprendizaje (sin conexión a base de datos en esta fase).
 
-El crecimiento del uso de servicios digitales ha expuesto a los usuarios a distintas modalidades de ciberataques que explotan el comportamiento humano (phishing, vishing, ingeniería social, suplantación de identidad) más que vulnerabilidades técnicas. En Colombia, la capacitación puramente teórica resulta insuficiente porque las personas no cuentan con espacios prácticos y seguros para aprender a identificar estas amenazas en su día a día.
+## Estructura del proyecto
 
-**Pregunta problema:** ¿cómo diseñar una solución de software basada en escenarios simulados e interactivos que contribuya a la capacitación de personas sin conocimientos especializados en ciberseguridad, para la identificación de amenazas digitales y la toma de decisiones frente a estas, en el contexto colombiano?
-
-CiberSim responde a esta pregunta generando amenazas ficticias y controladas, registrando las decisiones del usuario, evaluándolas automáticamente con un Motor de IA y ofreciendo retroalimentación y seguimiento de su progreso.
-
-### Avance realizado
-
-- Nueve pantallas navegables: acceso (inicio de sesión y registro), panel del usuario, catálogo de escenarios, simulación, resultado, historial, capacitación, panel de administración (resumen, escenarios y usuarios) y arquitectura.
-- Simulación de cuatro tipos de ataque: correo (phishing), SMS (smishing), mensajería (ingeniería social) y llamada (vishing), más un correo legítimo de control para evaluar falsos positivos.
-- Formularios con validación (acceso, registro, creación de escenarios), filtros, buscador y menús de navegación.
-- Motor de IA **simulado con reglas** (`js/services/aiEngine.js`) que calcula un índice de vulnerabilidad (0 a 100) ponderando el historial reciente, penaliza decisiones impulsivas, calcula riesgo por categoría y tendencia, y redacta retroalimentación textual.
-- Panel **Trazas MVC** (botón en la barra superior) que muestra en vivo el recorrido Vista → Controlador → Modelo → Motor de IA → Datos de cada acción.
-- Datos de prueba en memoria: dos roles (usuario y administrador), seis escenarios, cinco módulos de capacitación e historial de simulaciones de ejemplo. Todas las entidades (Banco Andino, Servi-Envíos, etc.) son ficticias.
-
-## 1. Objetivos del proyecto
-
-### Objetivo central
-
-Diseñar una solución de software basada en escenarios simulados e interactivos que contribuya a la capacitación de personas sin conocimientos especializados en ciberseguridad, para la identificación de amenazas digitales y la toma de decisiones frente a estas, en el contexto colombiano.
-
-### Objetivos específicos
-
-1. Identificar los principales tipos de ciberataques (phishing, vishing, ingeniería social, suplantación de identidad) que afectan a los usuarios habituales en Colombia, a fin de determinar los escenarios en los que debe basarse el simulador.
-2. Diseñar escenarios de simulación de ciberataques que permitan al usuario evaluar diversos escenarios de riesgo y actuar en consecuencia.
-3. Diseñar un algoritmo basado en inteligencia artificial para analizar los datos generados por el simulador, estimar el nivel de vulnerabilidad y determinar los puntos débiles del usuario según sus resultados y acciones durante la simulación.
-4. Diseñar y desarrollar la recopilación de datos para la visualización en el tablero de control, con el fin de facilitar el seguimiento del progreso del usuario.
-
-## 2. Selección de la arquitectura
-
-**Arquitectura seleccionada:** arquitectura en **cinco capas**, con separación estricta de responsabilidades:
-
-```
-CAPA DE PRESENTACIÓN (INTERFAZ)
-Escenarios de simulación · Decisiones
-        ↓
-CAPA DE LÓGICA DE NEGOCIO
-Generación de escenarios · Evaluación
-        ↓
-CAPA DE MOTOR DE IA
-Cálculo de vulnerabilidad · Feedback
-        ↓
-CAPA DE ACCESO A DATOS
-Abstracción de persistencia
-        ↓
-CAPA DE BASE DE DATOS
-Escenarios · Usuarios · Interacciones
-```
-
-**Justificación:** este diseño permite aplicar la separación de responsabilidades dividiendo el sistema en cinco componentes principales, y sirve como base práctica para comprender la comunicación entre capas antes de abordar implementaciones más complejas como el patrón MVC o microservicios.
-
-Dentro del prototipo, la capa de Presentación y la de Lógica de negocio se implementan siguiendo el patrón **MVC**:
-
-- **Vista:** solo renderiza datos, sin lógica de negocio (`js/views/views.js`, `css/styles.css`).
-- **Controlador:** procesa las acciones del usuario, coordina el temporizador, la navegación y el envío de decisiones (`js/controllers/controllers.js`).
-- **Modelo:** gestiona las entidades del dominio (`Usuario`, `Escenario`, `Simulacion`, `Decision`, `Resultado`) y concentra el acceso a datos a través de un repositorio único, `Repo` (`js/models/models.js`).
-- **Motor de IA (`ModeloIA`):** capa de servicio independiente que analiza el desempeño y calcula la vulnerabilidad (`js/services/aiEngine.js`).
-- **Base de datos:** en esta fase, datos simulados en memoria; en fases posteriores será reemplazada por una base de datos relacional sin alterar Vista ni Controlador (`js/data/testData.js`).
-
-Esta separación permitirá en el futuro exponer la Lógica de negocio, el Motor de IA y el Acceso a datos como una API REST (modelo Cliente-Servidor) sin sobrecargar el dispositivo del usuario, y facilita una eventual migración hacia microservicios.
-
-## 3. Modelado UML
-
-*(Diagramas incluidos en el documento de sustentación; en esta sección se referencian las mismas imágenes para el repositorio.)*
-
-### 3.1 Diagrama de casos de uso
-
-Actores: **Usuario** y **Administrador**.
-
-- Usuario: Iniciar sesión, Registrarse, Seleccionar escenario, Realizar simulación, Tomar decisión, Consultar dashboard, Consultar historial, Consultar retroalimentación, Consultar recomendaciones.
-- Administrador: Iniciar sesión, Gestionar usuarios, Gestionar escenarios, Consultar resultados.
-
-Estos casos de uso corresponden a las pantallas ya navegables del prototipo (acceso, panel del usuario, catálogo de escenarios, simulación, resultado, historial, capacitación y panel de administración).
-
-### 3.2 Diagrama de clases
-
-Clases principales y relaciones:
-
-- **Usuario** (idUsuario, nombre, correo, contraseña, nivelVulnerabilidad) — *realiza* → **Simulacion**
-- **Escenario** (idEscenario, titulo, tipoAmenaza, dificultad, descripcion) — *utiliza* → **Simulacion**
-- **Simulacion** (idSimulacion, fecha, tiempoRespuesta, estado) — *contiene* → **Decision**, *genera* → **Resultado**
-- **Decision** (idDecision, respuesta, esCorrecta)
-- **Resultado** (idResultado, puntuacion, retroalimentacion, nivelVulnerabilidad)
-- **ModeloIA** (idModelo, version; +analizarDesempeno(), +calcularVulnerabilidad()) — *analiza* → **Simulacion**, *apoya generación de* → **Resultado**
-
-Estas clases ya están reflejadas en el prototipo (`js/models/models.js` como `Usuario`, `Escenario`, `Simulacion`; `js/services/aiEngine.js` como el `ModeloIA`), aunque en esta fase `Decision` y `Resultado` viven como atributos de la simulación en memoria en lugar de entidades independientes.
-
-### 3.3 Diagrama de componentes
-
-Organización de los módulos de software (Interfaz, Lógica de negocio, Motor de IA, Acceso a datos, Base de datos) y sus interfaces de comunicación, documentada también de forma interactiva en la pantalla **Arquitectura** del propio prototipo.
-
-## 4. Modelo relacional
-
-Esquema definido para la base de datos que reemplazará a `testData.js` en fases posteriores:
-
-| Tabla | Campos |
-|---|---|
-| **USUARIO** | `id_usuario` (PK), `nombre`, `correo`, `contrasena`, `nivel_vulnerabilidad` |
-| **ESCENARIO** | `id_escenario` (PK), `titulo`, `tipo_amenaza`, `dificultad`, `descripcion` |
-| **SIMULACION** | `id_simulacion` (PK), `id_usuario` (FK), `id_escenario` (FK), `fecha`, `tiempo_respuesta`, `estado` |
-| **DECISION** | `id_decision` (PK), `id_simulacion` (FK), `respuesta`, `es_correcta` |
-| **RESULTADO** | `id_resultado` (PK), `id_simulacion` (FK), `puntuacion`, `retroalimentacion`, `nivel_vulnerabilidad` |
-
-Relaciones: `USUARIO` **realiza** `SIMULACION`; `ESCENARIO` **contiene**/es usado por `SIMULACION`; `SIMULACION` **registra** `DECISION` y **genera** `RESULTADO`.
-
-## 5. Lenguajes, herramientas y tecnologías
-
-- **Frontend (implementado):** HTML5, CSS3, JavaScript vanilla (sin frameworks), fuentes Schibsted Grotesk e IBM Plex Mono, iconos Icons8.
-- **Backend (proyectado):** Node.js con Express o Python con Flask, para exponer la lógica de negocio y el motor de IA como API REST.
-- **Base de datos (proyectada):** PostgreSQL o MySQL, para persistir usuarios, escenarios e historiales.
-- **Herramientas de modelado:** StarUML / Lucidchart / Draw.io, para la diagramación UML y relacional.
-- **Control de versiones:** Git y GitHub.
-
-## 6. Metodología
-
-El desarrollo sigue un enfoque iterativo e incremental basado en fases arquitectónicas, validando la usabilidad y la separación de componentes antes de la codificación profunda del Backend.
-
-- **Fase 1:** definición del problema, necesidades y requerimientos teóricos.
-- **Fase 2 (actual):** prototipado estructurado navegable, validación de UI/UX, organización del código en las 5 capas de la arquitectura y modelado UML/relacional.
-- **Fases posteriores:** desarrollo del API del Backend, integración de la base de datos relacional y conexión con un algoritmo de evaluación predictiva (IA) que reemplace al motor de reglas actual.
-
-## 7. Organización del proyecto (estructura de capas)
-
-```
-simulador-ciberataques/
-├── index.html                       Prototipo visual interactivo (Fase 2)
-├── README.md
+```text
+AR_SOFT_A2_NeuroShield/
+├── index.html               # Shell visual principal (Plantillas SPA)
 ├── css/
-│   └── styles.css                   CAPA 1: Interfaz de usuario (estilos)
-└── js/
-    ├── app.js                       Rutas y arranque de la aplicación
-    ├── core/
-    │   └── core.js                  Enrutador, trazas MVC y utilidades
-    ├── views/
-    │   └── views.js                 CAPA 1: Interfaz de usuario (Vista)
-    ├── controllers/
-    │   └── controllers.js           CAPA 2: Lógica de negocio (Controlador)
-    ├── models/
-    │   └── models.js                CAPA 2/4: Lógica de negocio (Modelo) + acceso a datos (Repo)
-    ├── services/
-    │   └── aiEngine.js              CAPA 3: Motor de IA (reglas heurísticas)
-    └── data/
-        └── testData.js              CAPA 5: Base de datos simulada
+│   └── styles.css           # Capa de estilos (Diseño SaaS moderno y minimalista)
+├── js/
+│   ├── models/
+│   │   └── data.js          # (M) Gestión de datos, estado y lógica de puntuación
+│   ├── views/
+│   │   └── ui.js            # (V) Funciones de actualización de UI y gráficas
+│   └── controllers/
+│       └── app.js           # (C) Enrutador principal y conexión Modelo-Vista
+└── Diagramas/
+    ├── Diagrama de casos de uso.png
+    ├── Diagrama de clases.png
+    ├── Diagrama de componentes.png
+    ├── diagrama.png
+    ├── Modelo MVC.png
+    └── Modelo relacional.png
 ```
 
-| Capa de la arquitectura | Componente MVC | Archivo |
-|---|---|---|
-| Presentación (Interfaz) | **Vista** | `js/views/views.js`, `css/styles.css` |
-| Lógica de negocio | **Controlador** | `js/controllers/controllers.js` |
-| Lógica de negocio | **Modelo** | `js/models/models.js` |
-| Motor de IA | `ModeloIA` (servicio) | `js/services/aiEngine.js` |
-| Acceso a datos | Repositorio (`Repo`) | `js/models/models.js` |
-| Base de datos | Datos simulados | `js/data/testData.js` |
+## Cómo ejecutar
 
-Flujo de una simulación: **Vista → Controlador → Modelo → Datos → Motor de IA → Vista.**
+1. Abre el archivo `index.html` directamente en cualquier navegador web moderno.
+2. **No requiere servidor local, backend ni instalación de dependencias.**
+3. *Datos de prueba:* En la pantalla de login, los campos ya contienen credenciales de demostración. Solo debes hacer clic en "Iniciar Sesión" para acceder al sistema y probar la navegación.
 
-##  8. Cómo ejecutarlo
+## Reglas de negocio implementadas (Lógica Forense Simulada)
 
-Abre `index.html` en el navegador. No requiere servidor ni instalación; necesita internet para cargar la tipografía y los iconos de Icons8.
+Durante la evaluación en el Sandbox, el Controlador consulta al Modelo para simular el cálculo predictivo del Motor de IA según las decisiones del usuario:
 
-Cuentas de prueba:
+- **Acceder al enlace (Caer):** Penalización crítica. Aumenta la vulnerabilidad en un +25%.
+- **Ignorar correo (o quedarse sin tiempo):** Penalización leve por omisión de protocolo de seguridad. Disminuye la vulnerabilidad en un -5%.
+- **Reportar Phishing:** Refuerzo positivo. Acción correcta que neutraliza la amenaza y reduce la vulnerabilidad en un -30%.
+- **Límites de resiliencia:** El modelo de datos valida matemáticamente que el porcentaje de vulnerabilidad nunca sea menor a 0% ni mayor a 100%.
 
-| Rol | Correo | Contraseña |
-|---|---|---|
-| Usuario | carolina.ramirez@ejemplo.co | Demo1234 |
-| Administrador | admin@cibersim.co | Admin1234 |
+## Diagramas del proyecto
 
-También hay botones de acceso rápido en la pantalla de inicio de sesión.
+### Diagrama de casos de uso
 
-## 9. Alcance y siguientes fases
+![Diagrama de casos de uso](Diagramas/Diagrama%20de%20casos%20de%20uso.png)
 
-- Los datos se reinician al recargar la página; no hay persistencia real todavía.
-- Todas las entidades (Banco Andino, Servi-Envíos, etc.) son ficticias, con fines exclusivamente académicos.
-- **Fase 3:** reemplazar `Repo` por una base de datos relacional real (PostgreSQL/MySQL) y el motor de reglas por un modelo de IA/NLP, exponiendo ambos a través de una API REST, sin modificar las vistas ni los controladores actuales.
+### Diagrama de clases
 
-Trazabilidad: Fase 1 (idea y propuesta) → **Fase 2 (prototipo estructurado)** → fases posteriores (implementación funcional del Backend y la IA).
+![Diagrama de clases](Diagramas/Diagrama%20de%20clases.png)
 
-## 10. Referencias
+### Diagrama de componentes
 
-*(Las referencias bibliográficas se ampliarán conforme se redacte el documento PDF final, utilizando formato APA 7.ª edición.)*
+![Diagrama de componentes](Diagramas/Diagrama%20de%20componentes.png)
 
-- Sommerville, I. (2011). *Ingeniería de software* (9.ª ed.). Pearson Educación.
-- Fowler, M. (2002). *Patterns of Enterprise Application Architecture*. Addison-Wesley.
+### Arquitectura del software
+
+![Arquitectura del software](Diagramas/diagrama.png)
+
+### Modelo MVC
+
+![Modelo MVC](Diagramas/Modelo%20MVC.png)
+
+### Modelo relacional
+
+![Modelo relacional](Diagramas/Modelo%20relacional.png)
+
+## Próximos pasos (Fases posteriores)
+
+- **Capa de Base de Datos:** Migración de los datos en memoria hacia una base de datos relacional (PostgreSQL) para persistencia real del historial.
+- **Capa de Lógica de Negocio (Backend):** Implementación de una API REST que asuma el rol del Controlador en el servidor de forma segura.
+- **Capa Motor de IA:** Reemplazo de las reglas matemáticas estáticas por un modelo de Procesamiento de Lenguaje Natural (NLP) que permita una evaluación semántica de amenazas reales.
