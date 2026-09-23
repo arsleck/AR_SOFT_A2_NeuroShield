@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ==========================================================================
+   1. VARIABLES DE TEMA (MINIMALISMO BLANCO / ESTILO NOTION-VERCEL)
+   ========================================================================== */
+:root[data-theme="light"] {
+    --bg-main: #fafafa;       /* Gris ultra claro (casi blanco) para el fondo */
+    --surface: #ffffff;       /* Blanco puro para las tarjetas */
+    --surface-hover: #f4f4f5; /* Gris muy suave para hovers */
+    --border: #e4e4e7;        /* Bordes grises muy sutiles y elegantes */
+    
+    --text-main: #09090b;     /* Casi negro para máxima elegancia y lectura */
+    --text-muted: #71717a;    /* Gris medio para textos secundarios */
+    
+    --primary: #09090b;       /* El color principal ahora es negro/oscuro (Minimalista) */
+    --primary-bg: #f4f4f5;    
+    
+    --success: #10b981;       /* Verde esmeralda moderno */
+    --success-bg: #ecfdf5;
+    --warning: #f59e0b;       /* Ámbar */
+    --warning-bg: #fffbeb;
+    --danger: #ef4444;        /* Rojo coral */
+    --danger-bg: #fef2f2;
+    
+    /* Sombras extremadamente suaves y difuminadas */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
+    --shadow-hover: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* (Se mantiene el dark mode por si a futuro lo necesitan, pero adaptado a la nueva estética) */
+:root[data-theme="dark"] {
+    --bg-main: #09090b; --surface: #18181b; --surface-hover: #27272a; --border: #27272a;
+    --text-main: #fafafa; --text-muted: #a1a1aa;
+    --primary: #ffffff; --primary-bg: #27272a;
+    --success: #10b981; --success-bg: rgba(16, 185, 129, 0.1);
+    --warning: #f59e0b; --warning-bg: rgba(245, 158, 11, 0.1);
+    --danger: #ef4444; --danger-bg: rgba(239, 68, 68, 0.1);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.5); --shadow-md: 0 8px 16px rgba(0,0,0,0.5); --shadow-hover: 0 16px 32px rgba(0,0,0,0.6);
+}
+
+/* ==========================================================================
+   2. ESTILOS GLOBALES
+   ========================================================================== */
+* { 
+    margin: 0; padding: 0; box-sizing: border-box; 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    transition: all 0.25s ease; 
+}
+
+body { 
+    background-color: var(--bg-main); color: var(--text-main); 
+    height: 100vh; overflow: hidden; font-size: 14px;
+    -webkit-font-smoothing: antialiased; 
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+
+.app-container { display: flex; height: 100vh; }
+.hidden { display: none !important; }
+
+.gradient-text { color: var(--text-main); font-weight: 700; letter-spacing: -0.5px;} 
+.mt-3 { margin-top: 1rem; } .mt-4 { margin-top: 1.5rem; } .mb-0 { margin-bottom: 0; } .w-100 { width: 100%; }
+.text-muted { color: var(--text-muted); } 
+.text-primary { color: var(--primary); }
+.text-danger { color: var(--danger); } 
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+/* ==========================================================================
+   3. PANTALLA DE LOGIN
+   ========================================================================== */
+.login-wrapper { display: flex; height: 100vh; width: 100vw; align-items: center; justify-content: center; background: var(--bg-main); z-index: 100;}
+.login-card { background: var(--surface); padding: 3.5rem 3rem; border-radius: 20px; width: 420px; box-shadow: var(--shadow-md); border: 1px solid var(--border); text-align: center; }
+.login-logo { font-size: 2.2rem; color: var(--primary); margin-bottom: 1.5rem; }
+.login-card h2 { margin-bottom: 0.5rem; font-weight: 700; font-size: 1.6rem; letter-spacing: -0.5px;}
+.login-card p { color: var(--text-muted); margin-bottom: 2.5rem; font-size: 0.95rem; }
+.form-group { text-align: left; margin-bottom: 1.5rem; }
+.form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem; display: block;}
+.form-input { width: 100%; padding: 0.8rem 1rem; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.95rem; outline: none; transition: all 0.2s;}
+.form-input:focus { border-color: var(--text-main); box-shadow: 0 0 0 1px var(--text-main); background: var(--surface);}
+
+/* ==========================================================================
+   4. LAYOUT PRINCIPAL (SPA) Y SIDEBAR
+   ========================================================================== */
+.app-layout { display: flex; height: 100vh; width: 100vw; opacity: 1; transition: opacity 0.4s ease;}
+.app-layout.hidden { opacity: 0; pointer-events: none; }
+
+.sidebar { width: 280px; background-color: var(--bg-main); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 2.5rem 1.5rem; z-index: 20; }
+.logo { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.15rem; color: var(--text-main); letter-spacing: -0.5px;}
+.logo-icon { width: 28px; height: 28px; background: var(--text-main); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--surface); font-size: 0.9rem; }
+.badge-enterprise { font-size: 0.65rem; background: var(--text-main); color: var(--surface); padding: 0.2rem 0.6rem; border-radius: 12px; font-weight: 600; margin-left: auto;}
+
+.nav-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; padding-left: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;}
+.nav-menu { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; }
+.nav-btn { background: transparent; border: none; color: var(--text-muted); padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem; font-weight: 500; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 0.85rem; text-decoration: none;}
+.nav-btn:hover { background-color: var(--surface-hover); color: var(--text-main); }
+.nav-btn.active { background-color: var(--surface); color: var(--text-main); font-weight: 600; box-shadow: var(--shadow-sm); border: 1px solid var(--border);}
+
+.user-profile-bot { display: flex; align-items: center; gap: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border); margin-top: auto;}
+.avatar-sm img { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); }
+.user-info-text { display: flex; flex-direction: column; }
+.user-name { font-weight: 600; font-size: 0.9rem; }
+.user-role { font-size: 0.75rem; color: var(--text-muted); }
+
+/* Topbar */
+.main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-main); }
+.topbar { height: 75px; display: flex; align-items: center; justify-content: space-between; padding: 0 3.5rem; background: var(--bg-main); border-bottom: 1px solid var(--border); z-index: 10; }
+.breadcrumb { font-size: 0.9rem; font-weight: 500; color: var(--text-muted); display: flex; align-items: center;}
+.topbar-actions { display: flex; align-items: center; gap: 1.5rem; }
+.pulse-indicator { display: flex; align-items: center; gap: 0.5rem; background: var(--surface); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; color: var(--text-main); border: 1px solid var(--border);}
+.pulse-dot { width: 8px; height: 8px; background-color: var(--success); border-radius: 50%; }
+.icon-btn { background: var(--surface); border: 1px solid var(--border); width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer;}
+.icon-btn:hover { background: var(--surface-hover); color: var(--text-main); }
+
+/* ==========================================================================
+   5. DASHBOARD Y TARJETAS (ESTÉTICA MINIMALISTA Y LIMPIA)
+   ========================================================================== */
+.main-content { padding: 3rem 3.5rem; overflow-y: auto; flex: 1; }
+.view-section { display: none; max-width: 1100px; margin: 0 auto; animation: fadeIn 0.4s ease;}
+.view-section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.view-header h1 { font-size: 1.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; letter-spacing: -0.5px;}
+.view-header p { font-size: 1rem; color: var(--text-muted); }
+
+.dashboard-grid { display: grid; grid-template-columns: 1.2fr 2fr; gap: 2rem; }
+.card { background-color: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; box-shadow: var(--shadow-sm); }
+.interactive-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.card-header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+.card h3 { font-size: 1.15rem; font-weight: 600; color: var(--text-main); letter-spacing: -0.3px;}
+.badge-soft { font-size: 0.75rem; font-weight: 600; background: var(--bg-main); color: var(--text-muted); padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--border);}
+
+/* ==========================================================================
+   6. GRÁFICAS Y MEDIDORES
+   ========================================================================== */
+.score-container { display: flex; justify-content: center; align-items: center; padding: 1rem 0; }
+.score-circle { position: relative; width: 190px; height: 190px; }
+.circular-chart { display: block; margin: 0 auto; width: 100%; height: 100%; transform: rotate(-90deg); }
+.circle-bg { fill: none; stroke: var(--bg-main); stroke-width: 2; }
+.circle { fill: none; stroke-width: 2.5; stroke-linecap: round; transition: stroke-dasharray 1s ease;} 
+.score-value { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.number-wrapper { display: flex; align-items: flex-start; justify-content: center; margin-bottom: 2px;}
+.number-wrapper h2 { font-family: 'Inter', sans-serif; font-size: 4rem; font-weight: 700; color: var(--text-main); line-height: 1; letter-spacing: -2px; }
+.number-wrapper .percent { font-size: 1.2rem; font-weight: 600; color: var(--text-muted); margin-left: 4px; margin-top: 6px;}
+.score-label { font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-top: 8px;}
+.chart-container { position: relative; height: 280px; width: 100%; margin-top: 1rem;}
+
+/* ==========================================================================
+   7. SIMULADOR (SANDBOX TIPO MAC/CHROME)
+   ========================================================================== */
+.timer-box { font-size: 1rem; font-weight: 600; background: var(--surface); color: var(--text-main); padding: 0.6rem 1.25rem; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; box-shadow: var(--shadow-sm);}
+.timer-box i { color: var(--danger); }
+
+.browser-window { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--surface); margin-top: 2rem; box-shadow: var(--shadow-md); }
+.browser-topbar { background: var(--bg-main); padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1.25rem; border-bottom: 1px solid var(--border); }
+.browser-dots { display: flex; gap: 0.5rem; }
+.browser-dots span { width: 12px; height: 12px; border-radius: 50%; }
+.browser-dots span:nth-child(1) { background: #e4e4e7; } .browser-dots span:nth-child(2) { background: #e4e4e7; } .browser-dots span:nth-child(3) { background: #e4e4e7; }
+.browser-url { flex: 1; background: var(--surface); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; color: var(--text-muted); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;}
+
+.email-content { padding: 0; }
+.email-header { padding: 1.75rem 2.5rem; border-bottom: 1px solid var(--border); font-size: 0.95rem; background: var(--surface);}
+.email-row { margin-bottom: 0.6rem; color: var(--text-main); }
+.email-row strong { color: var(--text-muted); display: inline-block; width: 75px; font-weight: 500;}
+.fake-email { font-size: 0.85rem; color: var(--text-muted); background: var(--bg-main); padding: 0.2rem 0.6rem; border-radius: 6px; border: 1px solid var(--border);}
+.urgent-text { color: var(--text-main); font-weight: 600; }
+
+.email-body { padding: 3rem 4rem; line-height: 1.8; font-size: 1.05rem; color: var(--text-main); }
+.email-actions-fake { margin: 3rem 0 1.5rem 0; text-align: center;}
+.fake-btn { background-color: var(--text-main); color: var(--surface); padding: 0.8rem 2.5rem; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 0.95rem; display: inline-block; transition: transform 0.2s;}
+.fake-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+/* ==========================================================================
+   8. BOTONES DE ACCIÓN (ESTÉTICA MINIMALISTA)
+   ========================================================================== */
+.sim-controls { background: transparent; border: none; box-shadow: none; padding: 0;}
+.sim-controls h3 { margin-bottom: 1rem; font-size: 1rem; color: var(--text-muted); font-weight: 500;}
+.action-buttons { display: flex; justify-content: center; gap: 1rem; }
+
+.btn { padding: 0.85rem 1.75rem; border: 1px solid var(--border); border-radius: 12px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem; background: var(--surface); color: var(--text-main); box-shadow: var(--shadow-sm);}
+.btn:hover { background: var(--surface-hover); transform: translateY(-1px);}
+
+.btn-primary { background-color: var(--text-main); color: var(--surface); border: none; box-shadow: var(--shadow-md);}
+.btn-primary:hover { background-color: #27272a; color: var(--surface);}
+
+.btn-cyber-danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg);}
+.btn-cyber-warning:hover { border-color: var(--warning); color: var(--warning); background: var(--warning-bg);}
+.btn-cyber-success:hover { border-color: var(--success); color: var(--success); background: var(--success-bg);}
+
+/* ==========================================================================
+   9. VISTA FORENSE Y LOGS (MODO CLARO)
+   ========================================================================== */
+.terminal-container { background: #fafafa; border-radius: 16px; overflow: hidden; height: 100%; border: 1px solid var(--border); box-shadow: var(--shadow-sm);}
+.terminal-topbar { background: #ffffff; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;}
+.terminal-body { padding: 2rem; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--text-main); line-height: 1.8; height: 350px; overflow-y: auto;}
+.terminal-body p { margin-bottom: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.5rem;}
+.terminal-body .error { color: var(--danger); font-weight: 600;}
+.terminal-body .warn { color: var(--warning); font-weight: 600;}
+.terminal-body .ok { color: var(--success); font-weight: 600;}
+
+/* ==========================================================================
+   10. PANTALLA DE CARGA
+   ========================================================================== */
+.loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.3s ease; }
+.loader-overlay.hidden { opacity: 0; pointer-events: none; }
+.loader-content { text-align: center; }
+.loader-content h3 { margin-top: 1.5rem; font-size: 1.25rem; font-weight: 700; color: var(--text-main);}
+.loader-content p { font-size: 0.95rem; margin-top: 0.5rem; color: var(--text-muted);}
+
+.cyber-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--text-main); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

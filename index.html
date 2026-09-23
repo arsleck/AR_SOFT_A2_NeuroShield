@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroShield | Plataforma SecOps</title>
+    
+    <!-- Librerías Externas -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Hoja de Estilos Principal -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Pantalla de Carga del SOC (Loader) -->
+    <div id="ai-loader" class="loader-overlay hidden">
+        <div class="loader-content">
+            <div class="cyber-spinner"></div>
+            <h3 class="gradient-text">Procesando Telemetría</h3>
+            <p>Ejecutando evaluación heurística y forense...</p>
+        </div>
+    </div>
+
+    <!-- 1. VISTA DE LOGIN -->
+    <div id="login-view" class="login-wrapper">
+        <div class="login-card">
+            <div class="login-logo"><i class="fa-solid fa-shield-virus"></i></div>
+            <h2>NeuroShield</h2>
+            <p>Arquitectura MVC</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Correo Institucional</label>
+                    <input type="email" class="form-input" required value="usuario@institucion.edu.co">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" class="form-input" required value="123456">
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-3" style="padding: 0.85rem;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. LAYOUT PRINCIPAL (SPA) -->
+    <div id="app-layout" class="app-layout hidden">
+        
+        <!-- Barra Lateral -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon"><i class="fa-solid fa-shield-virus"></i></div>
+                <span>NeuroShield <span class="badge-enterprise">PRO</span></span>
+            </div>
+            
+            <nav class="nav-menu mt-4">
+                <p class="nav-label">OPERACIONES (SecOps)</p>
+                <a href="#/dashboard" class="nav-btn active"><i class="fa-solid fa-chart-line"></i> Centro de Mando</a>
+                <a href="#/simulador" class="nav-btn"><i class="fa-solid fa-crosshairs"></i> Sandbox de Ataques</a>
+                <a href="#/resultados" class="nav-btn hidden" id="nav-resultados"><i class="fa-solid fa-microscope"></i> Reporte Forense</a>
+                
+                <p class="nav-label mt-4">SISTEMA</p>
+                <button class="nav-btn" id="theme-toggle"><i class="fa-solid fa-sun"></i> <span>Modo Claro</span></button>
+            </nav>
+
+            <div class="user-profile-bot mt-4">
+                <div class="avatar-sm">
+                    <img src="https://ui-avatars.com/api/?name=Usuario+Ejemplo&background=2563eb&color=fff&bold=true" alt="User">
+                </div>
+                <div class="user-info-text">
+                    <span class="user-name">Usuario Ejemplo</span>
+                    <span class="user-role">Estudiante / Analista</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Contenedor Derecho -->
+        <div class="main-wrapper">
+            <!-- Barra Superior (Topbar) -->
+            <header class="topbar glass-effect">
+                <div class="breadcrumb">
+                    <span class="text-muted">Sistema</span> 
+                    <i class="fa-solid fa-angle-right mx-2 text-muted" style="font-size:0.7rem"></i> 
+                    <strong class="text-glow">Arquitectura MVC Activa</strong>
+                </div>
+                <div class="topbar-actions">
+                    <div class="pulse-indicator">
+                        <span class="pulse-dot"></span>
+                        <span class="text-xs text-muted">Red Corporativa Segura</span>
+                    </div>
+                    <a href="#/login" class="icon-btn tooltip-trigger text-danger" style="text-decoration: none;">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <div class="tooltip-box" style="right:0; left:auto; transform:none;">Cerrar Sesión</div>
+                    </a>
+                </div>
+            </header>
+
+            <main class="main-content">
+                
+                <!-- ==========================================
+                     SECCIÓN A: DASHBOARD
+                =========================================== -->
+                <section id="dashboard" class="view-section active">
+                    <div class="view-header">
+                        <h1 class="gradient-text">Métricas de Concientización</h1>
+                        <p>Evaluación continua de vulnerabilidades mediante el Motor de IA simulado.</p>
+                    </div>
+
+                    <div class="dashboard-grid mt-4">
+                        <!-- Modelo Predictivo -->
+                        <div class="card cyber-card interactive-card">
+                            <div class="card-header-flex">
+                                <div>
+                                    <h3 class="mb-0">Modelo Predictivo (IA)</h3>
+                                    <span class="text-xs text-muted mt-1" style="display: block;">Riesgo actual del usuario</span>
+                                </div>
+                                <div><i class="fa-solid fa-brain text-primary" style="font-size:1.2rem;"></i></div>
+                            </div>
+                            
+                            <div class="score-container">
+                                <div class="score-circle">
+                                    <svg viewBox="0 0 36 36" class="circular-chart warning">
+                                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="circle" stroke="#f59e0b" stroke-dasharray="65, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    </svg>
+                                    <div class="score-value">
+                                        <div class="number-wrapper">
+                                            <h2 id="score-text">65</h2><span class="percent">%</span>
+                                        </div>
+                                        <span class="score-label">Vulnerabilidad</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Curva Histórica -->
+                        <div class="card cyber-card chart-card">
+                            <div class="card-header-flex">
+                                <h3>Curva de Aprendizaje</h3>
+                                <div class="badge-soft">Evolución Histórica</div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="vulnChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==========================================
+                     SECCIÓN B: SIMULADOR (SANDBOX)
+                =========================================== -->
+                <section id="simulador" class="view-section hidden">
+                    <div class="view-header flex-between">
+                        <div>
+                            <h1 class="gradient-text">Sandbox: Escenario Phishing</h1>
+                            <p>Evalúa el entorno y toma una decisión. El Modelo MVC procesará tu respuesta.</p>
+                        </div>
+                        <div class="timer-box">
+                            <i class="fa-regular fa-clock"></i> <span id="time-display">Quedan 180s</span>
+                        </div>
+                    </div>
+
+                    <!-- Navegador Mockup -->
+                    <div class="browser-window">
+                        <div class="browser-topbar">
+                            <div class="browser-dots"><span></span><span></span><span></span></div>
+                            <div class="browser-url"><i class="fa-solid fa-lock text-success" style="margin-right: 8px;"></i> https://mail.institucion.edu.co/notificaciones</div>
+                        </div>
+                        <div class="email-content">
+                            <div class="email-header">
+                                <div class="email-row"><strong>De:</strong> Departamento Financiero <span class="fake-email">&lt;soporte@finanzas-renovacion-col.org&gt;</span></div>
+                                <div class="email-row"><strong>Asunto:</strong> <span class="urgent-text">AVISO: Suspensión de desembolso para semestre en curso</span></div>
+                            </div>
+                            <div class="email-body">
+                                <p>Estimado estudiante,</p>
+                                <p>El comité ha pausado temporalmente su desembolso institucional por inconsistencias en su validación.</p>
+                                <p>Para evitar la cancelación definitiva y cobros prejurídicos, actualice su pagaré en un plazo máximo de 4 horas:</p>
+                                <div class="email-actions-fake">
+                                    <a href="#" class="fake-btn" onclick="event.preventDefault()">Actualizar Pagaré Aquí</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sim-controls mt-4 card cyber-card" style="text-align: center;">
+                        <h3><i class="fa-solid fa-shield-halved text-primary"></i> Decisiones de Mitigación</h3>
+                        <div class="action-buttons mt-3">
+                            <button class="btn btn-cyber-danger" id="btn-caer"><i class="fa-solid fa-arrow-pointer"></i> Acceder al enlace</button>
+                            <button class="btn btn-cyber-warning" id="btn-ignorar"><i class="fa-solid fa-trash"></i> Eliminar correo</button>
+                            <button class="btn btn-cyber-success" id="btn-reportar"><i class="fa-solid fa-shield-check"></i> Reportar Phishing</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==========================================
+                     SECCIÓN C: RESULTADOS FORENSES
+                =========================================== -->
+                <section id="resultados" class="view-section hidden">
+                    <div class="view-header">
+                        <h1 class="gradient-text">Evaluación Forense (Motor IA)</h1>
+                        <p>Resultados procesados por el Controlador y persistidos en el Modelo.</p>
+                    </div>
+
+                    <div class="dashboard-grid mt-4" style="grid-template-columns: 1fr;">
+                        <div class="terminal-container card" style="padding:0;">
+                            <div class="terminal-topbar"><span><i class="fa-solid fa-terminal"></i> MVC_Logic_Processor.exe</span></div>
+                            <div class="terminal-body" id="terminal-output">
+                                <!-- La Vista inyecta los logs aquí -->
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 1.5rem;">
+                            <a href="#/dashboard" class="btn btn-primary"><i class="fa-solid fa-chart-pie"></i> Ver impacto en Dashboard</a>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+    
+    <script src="js/models/data.js"></script>
+    <script src="js/views/ui.js"></script>
+    <script src="js/controllers/app.js"></script>
+</body>
+</html>
