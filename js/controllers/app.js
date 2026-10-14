@@ -1,32 +1,21 @@
-// === EL CONTROLADOR (MVC) ===
-// Responsable del enrutamiento SPA real, escuchar clics y conectar la Vista con el Modelo.
-
 const AppController = {
     timerInterval: null,
 
     init: function() {
-        // Enrutamiento SPA
         window.addEventListener('hashchange', () => this.enrutador());
-        
-        // Eventos de botones
-        document.getElementById('login-form')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            window.location.hash = '#/dashboard';
-        });
-
-        document.getElementById('btn-caer')?.addEventListener('click', () => this.procesarSimulacion('caer'));
-        document.getElementById('btn-ignorar')?.addEventListener('click', () => this.procesarSimulacion('ignorar'));
-        document.getElementById('btn-reportar')?.addEventListener('click', () => this.procesarSimulacion('reportar'));
-
         this.enrutador();
     },
 
     enrutador: function() {
         const rutaActual = window.location.hash || '#/login';
         
-        // Ordena a la Vista mostrar la pantalla correcta
-        UIView.cambiarVistaActiva(rutaActual);
+        // 1. Renderizar la página visualmente
+        UIView.renderizarPagina(rutaActual);
 
+        // 2. Asignar los eventos de botones porque el HTML se acaba de inyectar
+        this.asignarEventos(rutaActual);
+
+        // 3. Ejecutar lógica si corresponde
         if (rutaActual === '#/dashboard') {
             this.detenerTimer();
             UIView.actualizarDashboard(AppModel.estadoUsuario.riesgoActual);
@@ -36,26 +25,37 @@ const AppController = {
         }
     },
 
+    asignarEventos: function(rutaActual) {
+        if (rutaActual === '#/login' || rutaActual === '') {
+            document.getElementById('login-form')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                window.location.hash = '#/dashboard';
+            });
+        } else if (rutaActual === '#/simulador') {
+            document.getElementById('btn-caer')?.addEventListener('click', () => this.procesarSimulacion('caer'));
+            document.getElementById('btn-ignorar')?.addEventListener('click', () => this.procesarSimulacion('ignorar'));
+            document.getElementById('btn-reportar')?.addEventListener('click', () => this.procesarSimulacion('reportar'));
+        }
+    },
+
     procesarSimulacion: function(accion) {
         this.detenerTimer();
-        
-        // Mostrar pantalla de carga
         const loader = document.getElementById('ai-loader');
         if(loader) loader.classList.remove('hidden');
 
-        // Simular tiempo de respuesta del servidor (1.5 segundos)
         setTimeout(() => {
             if(loader) loader.classList.add('hidden');
             
-            // Lógica de Modelo y Vista
             const resultado = AppModel.calcularNuevoRiesgo(accion);
-            UIView.imprimirTerminal(resultado.logs);
             
-            const navRes = document.getElementById('nav-resultados');
-            if(navRes) navRes.classList.remove('hidden');
-            
-            // Redirigir a resultados
+            // Cambiar de pantalla primero
             window.location.hash = '#/resultados';
+            
+            // Esperar una fracción de segundo a que la UI se dibuje, e imprimir los resultados
+            setTimeout(() => {
+                UIView.imprimirTerminal(resultado.logs);
+            }, 50);
+            
         }, 1500);
     },
 
@@ -80,7 +80,6 @@ const AppController = {
     }
 };
 
-// Arrancar la app cuando cargue la página
 document.addEventListener('DOMContentLoaded', () => {
     AppController.init();
 });
