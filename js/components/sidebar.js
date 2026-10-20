@@ -4,6 +4,7 @@ const SidebarComponent = {
         const isDash = rutaActual === '#/dashboard' ? 'active' : '';
         const isSim = rutaActual === '#/simulador' ? 'active' : '';
         const isRes = rutaActual === '#/resultados' ? 'active' : '';
+        const isGest = rutaActual === '#/gestion' ? 'active' : '';
 
         return `
         <aside class="sidebar">

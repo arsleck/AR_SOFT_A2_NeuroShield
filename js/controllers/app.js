@@ -1,3 +1,6 @@
+// === EL CONTROLADOR (MVC) ===
+// Responsable del enrutamiento SPA real, escuchar clics y conectar la Vista con el Backend/Modelo.
+
 const AppController = {
     timerInterval: null,
 
@@ -8,14 +11,9 @@ const AppController = {
 
     enrutador: function() {
         const rutaActual = window.location.hash || '#/login';
-        
-        // 1. Renderizar la página visualmente
         UIView.renderizarPagina(rutaActual);
-
-        // 2. Asignar los eventos de botones porque el HTML se acaba de inyectar
         this.asignarEventos(rutaActual);
 
-        // 3. Ejecutar lógica si corresponde
         if (rutaActual === '#/dashboard') {
             this.detenerTimer();
             UIView.actualizarDashboard(AppModel.estadoUsuario.riesgoActual);
@@ -26,11 +24,116 @@ const AppController = {
     },
 
     asignarEventos: function(rutaActual) {
+        
+        // Expresiones regulares para validación Frontend
+        const regexNombre = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,50}$/;
+        const regexCorreo = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+        // === LÓGICA DE LOGIN ===
         if (rutaActual === '#/login' || rutaActual === '') {
-            document.getElementById('login-form')?.addEventListener('submit', (e) => {
+            document.getElementById('login-form')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                window.location.hash = '#/dashboard';
+                
+                const correoInput = document.getElementById('login-correo').value.trim();
+                const passwordInput = document.getElementById('login-password').value;
+                const btnSubmit = e.target.querySelector('button');
+                
+                const errorBox = document.getElementById('login-error-box');
+                const errorText = document.getElementById('login-error-text');
+                
+                // Función rápida para mostrar error visual
+                const mostrarError = (mensaje) => {
+                    errorText.innerText = mensaje;
+                    errorBox.style.display = 'block';
+                    btnSubmit.innerHTML = 'Ingresar al Sistema <i class="fa-solid fa-arrow-right ms-2"></i>';
+                    btnSubmit.disabled = false;
+                };
+
+                errorBox.style.display = 'none'; // Ocultar caja al reintentar
+                
+                if (!regexCorreo.test(correoInput)) return mostrarError('El formato del correo es inválido.');
+
+                const textoOriginal = btnSubmit.innerHTML;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
+                btnSubmit.disabled = true;
+
+                try {
+                    const respuesta = await fetch('http://localhost:3000/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ correo: correoInput, password: passwordInput })
+                    });
+
+                    const datos = await respuesta.json();
+
+                    if (!respuesta.ok) return mostrarError(datos.error);
+
+                    // Login exitoso
+                    AppModel.estadoUsuario.nombre = datos.usuario.nombre;
+                    AppModel.estadoUsuario.correo = datos.usuario.correo;
+                    AppModel.estadoUsuario.riesgoActual = datos.usuario.riesgoActual;
+                    
+                    window.location.hash = '#/dashboard';
+
+                } catch (error) {
+                    mostrarError('Error de conexión. Verifica que el servidor backend esté encendido.');
+                }
             });
+
+        // === LÓGICA DE REGISTRO ===
+        } else if (rutaActual === '#/registro') {
+            document.getElementById('registro-form')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const nombreInput = document.getElementById('reg-nombre').value.trim();
+                const correoInput = document.getElementById('reg-correo').value.trim();
+                const passwordInput = document.getElementById('reg-password').value;
+                const btnSubmit = e.target.querySelector('button');
+
+                const errorBox = document.getElementById('reg-error-box');
+                const errorText = document.getElementById('reg-error-text');
+
+                const mostrarError = (mensaje) => {
+                    errorText.innerText = mensaje;
+                    errorBox.style.display = 'block';
+                    btnSubmit.innerHTML = 'Registrarse <i class="fa-solid fa-arrow-right ms-2"></i>';
+                    btnSubmit.disabled = false;
+                };
+
+                errorBox.style.display = 'none';
+
+                // Validaciones visuales inmediatas (Front-end)
+                if (!regexNombre.test(nombreInput)) return mostrarError('El nombre solo debe contener letras (mínimo 3).');
+                if (!regexCorreo.test(correoInput)) return mostrarError('El correo ingresado no es válido.');
+                if (passwordInput.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.');
+
+                const textoOriginal = btnSubmit.innerHTML;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando cuenta...';
+                btnSubmit.disabled = true;
+
+                try {
+                    const respuesta = await fetch('http://localhost:3000/api/registro', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nombre: nombreInput, correo: correoInput, password: passwordInput })
+                    });
+
+                    const datos = await respuesta.json();
+
+                    if (!respuesta.ok) return mostrarError(datos.error);
+
+                    AppModel.estadoUsuario.nombre = datos.usuario.nombre;
+                    AppModel.estadoUsuario.correo = datos.usuario.correo;
+                    AppModel.estadoUsuario.riesgoActual = datos.usuario.riesgoActual;
+                    
+                    window.location.hash = '#/dashboard';
+
+                } catch (error) {
+                    mostrarError('Error de conexión con el servidor.');
+                }
+            });
+
+        // === LÓGICA DEL SIMULADOR ===
         } else if (rutaActual === '#/simulador') {
             document.getElementById('btn-caer')?.addEventListener('click', () => this.procesarSimulacion('caer'));
             document.getElementById('btn-ignorar')?.addEventListener('click', () => this.procesarSimulacion('ignorar'));
@@ -47,11 +150,8 @@ const AppController = {
             if(loader) loader.classList.add('hidden');
             
             const resultado = AppModel.calcularNuevoRiesgo(accion);
-            
-            // Cambiar de pantalla primero
             window.location.hash = '#/resultados';
             
-            // Esperar una fracción de segundo a que la UI se dibuje, e imprimir los resultados
             setTimeout(() => {
                 UIView.imprimirTerminal(resultado.logs);
             }, 50);
