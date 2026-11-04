@@ -1,18 +1,20 @@
 // === EL MODELO (MVC) ===
-// Gestiona el estado del usuario, vulnerabilidad por vector, diagnóstico y microcursos sincronizados con PostgreSQL.
+// Gestiona el estado del usuario, vulnerabilidad por vector, logros, cursos y misiones prácticas sincronizadas con PostgreSQL.
 
 const AppModel = {
     estadoUsuario: {
+        id: null,
         nombre: "Estudiante",
         correo: "",
+        rol: "Estudiante",
         riesgoActual: 55,
-        // Datos claros por categoría para la gráfica de barras horizontal
         riesgoPorVector: {
             Phishing: 65,
             Smishing: 50,
             Vishing: 60,
             "Ing. Social": 45
         },
+        progresoCursos: {}, // { [id_curso]: { completado: true, puntaje_quiz: 100 } }
         diagnosticoCompletado: false,
         nivelConocimiento: "Sin evaluar",
         recomendacionesActuales: [
@@ -24,10 +26,12 @@ const AppModel = {
             {
                 icono: "fa-graduation-cap",
                 color: "text-warning",
-                texto: "Completa los microcursos de la parte inferior antes de iniciar tu entrenamiento en el simulador."
+                texto: "Completa los microcursos del catálogo para desbloquear tus insignias antes de entrar al simulador."
             }
         ]
     },
+
+    ultimoResultadoSimulacion: null,
 
     preguntasDiagnostico: [
         {
@@ -76,112 +80,185 @@ const AppModel = {
         }
     ],
 
-    // Respaldo local en caso de que el servidor esté apagado; se actualiza desde PostgreSQL con obtenerCursos()
-    catalogoCursos: [
+    catalogoCursos: [],
+
+    catalogoMisiones: [
         {
-            id_curso: 1,
-            slug: "curso-phishing",
-            titulo: "Detección de Phishing Corporativo e Institucional",
-            categoria: "Correo Electrónico",
-            nivel: "Básico",
-            duracion: "4 min",
-            icono: "fa-envelope-open-text",
-            color_tema: "#4f46e5",
-            fondo_tema: "#eef2ff",
-            resumen: "Aprende a identificar correos falsos que suplantan entidades como ICETEX, DIAN o bancos para robar tus credenciales.",
-            como_funciona: "El atacante envía un correo con logotipos idénticos a los oficiales y utiliza una excusa urgente (suspensión de cuenta o cobro jurídico) para dirigirte a un sitio web clonado.",
-            senales_alerta: [
-                "El dominio del remitente no coincide con la entidad oficial (ej. @icetex-soporte.org).",
-                "Sentido de urgencia extrema con plazos de pocas horas.",
-                "Enlaces que al inspeccionarlos dirigen a direcciones externas desconocidas."
-            ],
-            prevencion: "Nunca ingreses tus contraseñas desde enlaces recibidos por correo; digita siempre la dirección oficial en el navegador.",
-            origen: "Sistema"
+            id_mision: 1,
+            titulo: "Misión 1: Suspensión de Crédito Educativo (ICETEX)",
+            vector: "Phishing",
+            dificultad: "Básico",
+            tiempo_limite: 150,
+            descripcion_corta: "Inspecciona un correo urgente sobre el bloqueo inminente de tu desembolso semestral.",
+            remitente_nombre: "División de Cartera ICETEX",
+            remitente_identificador: "notificaciones@icetex-portal-juridico.org",
+            asunto_o_contexto: "URGENTE: Suspensión definitiva de giro académico por falta de validación biométrica",
+            contenido_principal: "Estimado beneficiario: Detectamos una inconsistencia en la renovación de su crédito educativo. Si no actualiza sus credenciales bancarias y firma digital en las próximas 2 horas, su matrícula será reportada en mora y el desembolso quedará cancelado.",
+            texto_boton_trampa: "Validar Firma y Evitar Suspensión",
+            url_trampa: "http://185.220.101.42/icetex-login-portal/auth.php",
+            pistas_forenses: [
+                "El dominio remitente termina en .org (icetex-portal-juridico.org), mientras que toda entidad del Estado colombiano usa .gov.co.",
+                "El enlace del botón apunta a una dirección IP extranjera sin cifrado (http://185.220.101.42).",
+                "Apela al miedo financiero y exige actuar en menos de 2 horas para impedir que verifiques."
+            ]
         },
         {
-            id_curso: 2,
-            slug: "curso-smishing",
-            titulo: "Defensa contra Smishing y Enlaces Móviles",
-            categoria: "Mensajes SMS",
-            nivel: "Básico",
-            duracion: "3 min",
-            icono: "fa-comment-sms",
-            color_tema: "#0284c7",
-            fondo_tema: "#e0f2fe",
-            resumen: "Reconoce mensajes de texto fraudulentos sobre paquetes retenidos, premios o bloqueos bancarios en tu celular.",
-            como_funciona: "En Colombia es frecuente recibir SMS falsos suplantando a 4-72, Servientrega o billeteras digitales con enlaces acortados que solicitan pagos pequeños o datos de tarjetas.",
-            senales_alerta: [
-                "Uso de acortadores de enlaces como bit.ly o tinyurl.",
-                "Mensajes enviados desde números celulares estándar en vez de códigos cortos oficiales.",
-                "Solicitud de pagos inmediatos por aduanas o actualización de datos."
-            ],
-            prevencion: "Elimina cualquier SMS que incluya enlaces para desbloquear cuentas o pagar envíos. Verifica directamente en la aplicación oficial.",
-            origen: "Sistema"
+            id_mision: 2,
+            titulo: "Misión 2: Paquete Retenido en Aduana 4-72",
+            vector: "Smishing",
+            dificultad: "Básico",
+            tiempo_limite: 120,
+            descripcion_corta: "Analiza un mensaje de texto SMS en tu teléfono móvil que exige un pago rápido de impuestos.",
+            remitente_nombre: "Mensaje de Texto SMS",
+            remitente_identificador: "+57 318 492 0184",
+            asunto_o_contexto: "Alerta de Entrega Fallida - Central de Envíos",
+            contenido_principal: "4-72 INFORMA: Su paquete internacional #CO-884920 presenta retención aduanera por datos incompletos. Pague el excedente de $8.900 COP hoy o será devuelto a origen. Gestione aquí:",
+            texto_boton_trampa: "bit.ly/pago-aduana-472col",
+            url_trampa: "http://rastreo-472-pagos-pse.xyz/tarjeta",
+            pistas_forenses: [
+                "El mensaje proviene de un número celular común (+57 318...) en lugar de un código corto oficial.",
+                "Utiliza un acortador bit.ly que oculta un dominio fraudulento (.xyz) diseñado para clonar tarjetas.",
+                "Solicita un micro-pago urgente para capturar los datos de tu tarjeta o cuenta PSE."
+            ]
         },
         {
-            id_curso: 3,
-            slug: "curso-vishing",
-            titulo: "Prevención de Vishing y Fraude Telefónico",
-            categoria: "Llamadas de Voz",
-            nivel: "Intermedio",
-            duracion: "5 min",
-            icono: "fa-phone-volume",
-            color_tema: "#d97706",
-            fondo_tema: "#fef3c7",
-            resumen: "Identifica cómo operan los falsos asesores bancarios que buscan obtener tus códigos de seguridad por llamada.",
-            como_funciona: "El atacante te llama mencionando datos reales tuyos, finge ser del área antifraude del banco y te pide leer el código de 6 dígitos (OTP) que acaba de llegar a tu celular.",
-            senales_alerta: [
-                "Solicitud de códigos OTP enviados por SMS o aplicaciones de token.",
-                "Ruido de call center de fondo y presión para que no cuelgues la llamada.",
-                "Petición para descargar aplicaciones de control remoto como AnyDesk."
-            ],
-            prevencion: "Cuelga de inmediato; ninguna entidad financiera solicita códigos de verificación ni claves por teléfono.",
-            origen: "Sistema"
+            id_mision: 3,
+            titulo: "Misión 3: Llamada del Departamento Antifraude Bancario",
+            vector: "Vishing",
+            dificultad: "Intermedio",
+            tiempo_limite: 140,
+            descripcion_corta: "Escucha y analiza la llamada de un supuesto ejecutivo de seguridad que intenta bloquear una compra falsa.",
+            remitente_nombre: "Seguridad Bancaria (Llamada Entrante)",
+            remitente_identificador: "Línea Fija (601) 749-0000 - Spoofing",
+            asunto_o_contexto: "Alerta de compra internacional en curso por $2.450.000 COP",
+            contenido_principal: "Buen día. Le hablamos del área de monitoreo antifraude de su banco. Detectamos una compra en línea en comercios internacionales hace 3 minutos. Para cancelar el cobro y reversar el dinero a su cuenta, acabo de enviarle un código de seguridad de 6 dígitos por SMS; por favor léamelo en voz alta antes de que el sistema procese el débito.",
+            texto_boton_trampa: "Dictar el código OTP de 6 dígitos al asesor",
+            url_trampa: "tel:otp-compromise-action",
+            pistas_forenses: [
+                "Ningún banco solicita códigos OTP (One-Time Password) por teléfono para cancelar o reversar transacciones.",
+                "El atacante utiliza ese código de 6 dígitos para autorizar en tiempo real el robo de tu cuenta.",
+                "El número en pantalla puede ser falsificado mediante Caller ID Spoofing."
+            ]
         },
         {
-            id_curso: 4,
-            slug: "curso-ingenieria-social",
-            titulo: "Fundamentos de Ingeniería Social",
-            categoria: "Manipulación Psicológica",
-            nivel: "Intermedio",
-            duracion: "6 min",
-            icono: "fa-user-shield",
-            color_tema: "#dc2626",
-            fondo_tema: "#fee2e2",
-            resumen: "Comprende los disparadores psicológicos (miedo, autoridad y urgencia) que utilizan los ciberdelincuentes.",
-            como_funciona: "En lugar de vulnerar un sistema técnico, el atacante manipula la confianza humana para que la propia víctima entregue el acceso a su información confidencial.",
-            senales_alerta: [
-                "Presión para actuar de inmediato sin consultar a terceros.",
-                "Suplantación de figuras de autoridad, soporte técnico o entidades estatales.",
-                "Promesas de beneficios económicos o alertas de sanciones inminentes."
-            ],
-            prevencion: "Aplica la regla de pausa: ante cualquier comunicación alarmante, detente y verifica por un canal oficial independiente.",
-            origen: "Sistema"
+            id_mision: 4,
+            titulo: "Misión 4: Soporte Técnico de Emergencia por WhatsApp",
+            vector: "Ing. Social",
+            dificultad: "Avanzado",
+            tiempo_limite: 130,
+            descripcion_corta: "Evalúa un mensaje directo en WhatsApp de un supuesto coordinador de TI de la universidad.",
+            remitente_nombre: "Soporte TI Institucional",
+            remitente_identificador: "+57 301 998 4412 (Cuenta No Verificada)",
+            asunto_o_contexto: "Actualización obligatoria de token de correo institucional",
+            contenido_principal: "Hola. Soy el Ing. Carlos Mendoza de Mesa de Ayuda TI. Estamos migrando los servidores de correo estudiantil por un ataque reciente y tu cuenta aparece en cola de borrado. Envíame por este chat tu contraseña actual o aprueba la notificación de acceso que acaba de salir en tu pantalla para no perder tus materias inscritas.",
+            texto_boton_trampa: "Compartir clave / Aprobar acceso en el chat",
+            url_trampa: "https://wa.me/soporte-falso-ti",
+            pistas_forenses: [
+                "El personal de soporte técnico jamás necesita conocer tu contraseña actual para realizar migraciones.",
+                "Solicitar aprobar notificaciones de segundo factor (MFA Fatigue) es una técnica clásica de Ingeniería Social.",
+                "Combina principio de autoridad (Ingeniero de TI) con temor a perder el semestre."
+            ]
         }
     ],
 
-    // Sincroniza los microcursos desde PostgreSQL (Neon)
+    misionActivaId: 1,
+    listaUsuariosAdmin: [],
+    listaGruposAdmin: [],
+
+    obtenerHabilidadesPorDefecto: function(categoria) {
+        const mapa = {
+            'Phishing': ['Phishing', 'Análisis de Cabeceras', 'Verificación de Dominios', 'Respuesta a Incidentes'],
+            'Smishing': ['Smishing', 'Inspección de Enlaces Acortados', 'Seguridad Móvil', 'Prevención de Fraude SMS'],
+            'Vishing': ['Vishing', 'Protección de Códigos OTP', 'Verificación de Identidad', 'Defensa Telefónica'],
+            'Ing. Social': ['Ingeniería Social', 'Control de Urgencia', 'Validación de Autoridad', 'Pensamiento Crítico']
+        };
+        return mapa[categoria] || [categoria || 'Ciberseguridad', 'Detección de Amenazas', 'Prevención de Fraude'];
+    },
+
     sincronizarCursosDesdeBD: async function() {
         try {
             const respuesta = await fetch('http://localhost:3000/api/cursos');
-            if (!respuesta.ok) return this.catalogoCursos;
-            const cursosBD = await respuesta.json();
-            if (Array.isArray(cursosBD) && cursosBD.length > 0) {
-                this.catalogoCursos = cursosBD.map(c => ({
-                    ...c,
-                    senales_alerta: Array.isArray(c.senales_alerta)
-                        ? c.senales_alerta
-                        : JSON.parse(c.senales_alerta || '[]')
-                }));
+            if (respuesta.ok) {
+                const cursosBD = await respuesta.json();
+                if (Array.isArray(cursosBD) && cursosBD.length > 0) {
+                    this.catalogoCursos = cursosBD.map(c => {
+                        const habs = Array.isArray(c.habilidades) ? c.habilidades : JSON.parse(c.habilidades || '[]');
+                        return {
+                            ...c,
+                            senales_alerta: Array.isArray(c.senales_alerta) ? c.senales_alerta : JSON.parse(c.senales_alerta || '[]'),
+                            habilidades: habs.length > 0 ? habs : this.obtenerHabilidadesPorDefecto(c.categoria)
+                        };
+                    });
+                }
             }
-            return this.catalogoCursos;
         } catch (error) {
-            return this.catalogoCursos;
+            console.error('Usando catálogo local de respaldo:', error);
+        }
+
+        // Sincronizar también misiones y progreso del usuario si hay sesión
+        await this.sincronizarMisionesDesdeBD();
+        await this.sincronizarProgresoUsuarioDesdeBD();
+        return this.catalogoCursos;
+    },
+
+    sincronizarMisionesDesdeBD: async function() {
+        try {
+            const res = await fetch('http://localhost:3000/api/misiones');
+            if (res.ok) {
+                const misionesBD = await res.json();
+                if (Array.isArray(misionesBD) && misionesBD.length > 0) {
+                    this.catalogoMisiones = misionesBD.map(m => ({
+                        ...m,
+                        pistas_forenses: Array.isArray(m.pistas_forenses) ? m.pistas_forenses : JSON.parse(m.pistas_forenses || '[]')
+                    }));
+                }
+            }
+        } catch (e) {
+            // Mantiene las 4 misiones por defecto en memoria
+        }
+    },
+
+    sincronizarProgresoUsuarioDesdeBD: async function() {
+        const userId = this.estadoUsuario.id;
+        if (!userId) return;
+        try {
+            const res = await fetch(`http://localhost:3000/api/usuarios/${userId}/progreso`);
+            if (res.ok) {
+                const filas = await res.json();
+                const mapaProgreso = {};
+                filas.forEach(f => {
+                    mapaProgreso[f.id_curso] = {
+                        completado: f.completado && f.puntaje_quiz >= 60,
+                        puntaje_quiz: f.puntaje_quiz,
+                        intentos: f.intentos
+                    };
+                });
+                this.estadoUsuario.progresoCursos = mapaProgreso;
+            }
+        } catch (e) {
+            console.error('No se pudo cargar el progreso de logros:', e);
+        }
+    },
+
+    sincronizarDatosAdminDesdeBD: async function() {
+        const token = sessionStorage.getItem('neuroshield_token');
+        if (!token || this.estadoUsuario.rol !== 'Administrador') return;
+
+        try {
+            const headers = { 'Authorization': `Bearer ${token}` };
+            const [resUsuarios, resGrupos] = await Promise.all([
+                fetch('http://localhost:3000/api/admin/usuarios', { headers }),
+                fetch('http://localhost:3000/api/admin/grupos', { headers })
+            ]);
+
+            if (resUsuarios.ok) this.listaUsuariosAdmin = await resUsuarios.json();
+            if (resGrupos.ok) this.listaGruposAdmin = await resGrupos.json();
+        } catch (error) {
+            console.error('Error al sincronizar datos de administración:', error);
         }
     },
 
     evaluarDiagnostico: function(respuestasPorVector) {
-        // Actualizamos el riesgo específico de cada vector según las respuestas
         Object.keys(respuestasPorVector).forEach(vector => {
             this.estadoUsuario.riesgoPorVector[vector] = respuestasPorVector[vector];
         });
@@ -203,7 +280,7 @@ const AppModel = {
             recomendaciones.push({
                 icono: "fa-book-open",
                 color: "text-primary",
-                texto: "Revisa primero los microcursos de Phishing y Vishing en la sección inferior antes de pasar al simulador."
+                texto: "Completa primero los cursos de Phishing y Vishing para desbloquear tus insignias antes de pasar al simulador."
             });
         } else if (promedio >= 35) {
             this.estadoUsuario.nivelConocimiento = "Intermedio (Riesgo Moderado)";
@@ -215,7 +292,7 @@ const AppModel = {
             recomendaciones.push({
                 icono: "fa-crosshairs",
                 color: "text-primary",
-                texto: "Completa el microcurso del vector donde obtuviste mayor barra de riesgo y pasa al simulador práctico."
+                texto: "Revisa el curso del vector donde obtuviste mayor barra de riesgo y pasa al Centro de Misiones."
             });
         } else {
             this.estadoUsuario.nivelConocimiento = "Avanzado (Riesgo Bajo)";
@@ -227,7 +304,7 @@ const AppModel = {
             recomendaciones.push({
                 icono: "fa-bolt",
                 color: "text-primary",
-                texto: "Pon a prueba tu velocidad de respuesta bajo presión en las misiones prácticas del simulador."
+                texto: "Pon a prueba tu velocidad de respuesta bajo presión en las 4 misiones del simulador."
             });
         }
 
@@ -240,27 +317,57 @@ const AppModel = {
     },
 
     calcularNuevoRiesgo: function(accion) {
+        const mision = this.catalogoMisiones.find(m => String(m.id_mision) === String(this.misionActivaId)) || this.catalogoMisiones[0];
+        const vector = mision.vector || 'Phishing';
         let impacto = 0;
+        let estadoDecision = '';
         let reporte = [];
 
         if (accion === 'caer') {
-            impacto = 25;
-            reporte = ["<span class='error'>[CRÍTICO] Infracción detectada. Usuario accedió a enlace fraudulento.</span>", "Impacto: +25% en vulnerabilidad de Phishing."];
+            impacto = 20;
+            estadoDecision = 'CRÍTICO: Caíste en la trampa del atacante';
+            reporte = [
+                `<span class='error'>[ALERTA CRÍTICA] Ejecutaste la acción maliciosa en el escenario "${mision.titulo}".</span>`,
+                `Vector comprometido: ${vector} (${mision.remitente_identificador})`,
+                `Impacto en tu perfil: +20% de vulnerabilidad en el vector ${vector}.`
+            ];
         } else if (accion === 'ignorar' || accion === 'tiempo') {
             impacto = -5;
-            reporte = ["<span class='warn'>[ALERTA] Amenaza ignorada, pero no fue reportada al área de seguridad.</span>", "Impacto: -5% en vulnerabilidad de Phishing."];
+            estadoDecision = accion === 'tiempo' ? 'TIEMPO AGOTADO: Sin respuesta oportuna' : 'PRECAUCIÓN: Amenaza ignorada pero no reportada';
+            reporte = [
+                `<span class='warn'>[ADVERTENCIA] Evitaste caer en "${mision.titulo}", pero no alertaste al equipo de seguridad.</span>`,
+                `Recuerda que reportar el ataque protege al resto de la organización.`,
+                `Impacto en tu perfil: -5% de vulnerabilidad en el vector ${vector}.`
+            ];
         } else if (accion === 'reportar') {
-            impacto = -25;
-            reporte = ["<span class='ok'>[CORRECTO] Amenaza identificada y reportada oportunamente.</span>", "Impacto: -25% en vulnerabilidad de Phishing."];
+            impacto = -20;
+            estadoDecision = 'EXCELENTE: Amenaza neutralizada y reportada';
+            reporte = [
+                `<span class='ok'>[DEFENSA EXITOSA] Identificaste y reportaste correctamente el ataque "${mision.titulo}".</span>`,
+                `El remitente (${mision.remitente_identificador}) fue bloqueado en las reglas de seguridad.`,
+                `Impacto en tu perfil: -20% de vulnerabilidad en el vector ${vector}.`
+            ];
         }
 
-        const nuevoPhishing = Math.max(10, Math.min(95, (this.estadoUsuario.riesgoPorVector.Phishing || 50) + impacto));
-        this.estadoUsuario.riesgoPorVector.Phishing = nuevoPhishing;
+        const valorActualVector = this.estadoUsuario.riesgoPorVector[vector] ?? 50;
+        this.estadoUsuario.riesgoPorVector[vector] = Math.max(10, Math.min(95, valorActualVector + impacto));
 
         const valores = Object.values(this.estadoUsuario.riesgoPorVector);
         this.estadoUsuario.riesgoActual = Math.round(valores.reduce((a, b) => a + b, 0) / valores.length);
-        
+
+        this.ultimoResultadoSimulacion = {
+            mision: mision,
+            accion: accion,
+            impacto: impacto,
+            estadoDecision: estadoDecision,
+            nuevoRiesgoVector: this.estadoUsuario.riesgoPorVector[vector],
+            nuevoRiesgoGlobal: this.estadoUsuario.riesgoActual,
+            logs: reporte
+        };
+
         return {
+            misionId: mision.id_mision,
+            impacto: impacto,
             nuevoRiesgo: this.estadoUsuario.riesgoActual,
             logs: reporte
         };

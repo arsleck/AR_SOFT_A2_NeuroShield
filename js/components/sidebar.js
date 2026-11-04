@@ -7,6 +7,8 @@ const SidebarComponent = {
         const isPerf = rutaActual === '#/perfil' ? 'active' : '';
         const isGest = rutaActual === '#/gestion' ? 'active' : '';
 
+        const esAdmin = AppModel.estadoUsuario.rol === 'Administrador';
+
         return `
         <div id="drawer-overlay" class="drawer-overlay"></div>
         <aside id="side-drawer" class="drawer">
@@ -24,9 +26,15 @@ const SidebarComponent = {
                 <a href="#/misiones" class="nav-btn ${isSim}"><i class="fa-solid fa-crosshairs"></i> Simuladores Prácticos</a>
                 <a href="#/resultados" class="nav-btn ${isRes}"><i class="fa-solid fa-file-shield"></i> Análisis Forense</a>
                 
-                <p class="nav-label mt-4">Cuenta y Administración</p>
+                <p class="nav-label mt-4">Cuenta</p>
                 <a href="#/perfil" class="nav-btn ${isPerf}"><i class="fa-solid fa-user-gear"></i> Mi Perfil y Seguridad</a>
-                <a href="#/gestion" class="nav-btn ${isGest}"><i class="fa-solid fa-Sliders"></i> Gestión</a>
+
+                ${esAdmin ? `
+                    <p class="nav-label mt-4">Administración</p>
+                    <a href="#/gestion" class="nav-btn ${isGest}">
+                        <i class="fa-solid fa-sliders"></i> Panel de Gestión
+                    </a>
+                ` : ''}
             </nav>
 
             <div style="margin-top:auto; padding-top:1rem; border-top: 1px solid var(--border);">

@@ -1,60 +1,132 @@
 const MisionesPage = {
+    metaVectores: [
+        {
+            vector: 'Phishing',
+            titulo: 'Simulador de Phishing (Correo)',
+            icono: 'fa-envelope-open-text',
+            descripcion: 'Bandeja de entrada interactiva para inspeccionar remitentes, cabeceras, archivos adjuntos y enlaces fraudulentos en correos institucionales o bancarios.'
+        },
+        {
+            vector: 'Smishing',
+            titulo: 'Simulador de Smishing (SMS Móvil)',
+            icono: 'fa-mobile-screen-button',
+            descripcion: 'Entorno de teléfono inteligente para detectar mensajes de texto maliciosos, alertas falsas de paquetería y enlaces acortados.'
+        },
+        {
+            vector: 'Vishing',
+            titulo: 'Simulador de Vishing (Llamadas de Voz)',
+            icono: 'fa-phone-volume',
+            descripcion: 'Simulador de llamadas entrantes con audio sintetizado en vivo para entrenar la defensa frente a falsos asesores que solicitan códigos OTP o CVV.'
+        },
+        {
+            vector: 'Ing. Social',
+            titulo: 'Simulador de Ingeniería Social (Chat)',
+            icono: 'fa-comments',
+            descripcion: 'Escenarios de mensajería instantánea corporativa (WhatsApp / Teams) donde los atacantes usan urgencia o suplantación de autoridad.'
+        }
+    ],
+
     render: function() {
+        const todas = AppModel.catalogoMisiones || [];
+
         return `
         <section id="misiones" class="view-section active">
-            <div class="view-header mb-4" style="background: var(--surface); padding: 2rem; border-radius: 20px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
-                <div class="flex-between align-items-center">
-                    <div>
-                        <h1 style="font-size: 2rem; color: var(--text-main); font-weight: 800; letter-spacing: -0.5px;"><i class="fa-solid fa-map-location-dot text-primary me-2"></i> Centro de Misiones</h1>
-                        <p class="text-muted mt-2" style="font-size: 1.05rem;">Selecciona un escenario interactivo. A medida que superes las pruebas, el Motor de IA desbloqueará nuevos retos.</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <span style="display: block; font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 5px;">Progreso Global</span>
-                        <div style="width: 150px; height: 8px; background: var(--bg-main); border-radius: 4px; overflow: hidden; border: 1px solid var(--border);">
-                            <div style="width: 33%; height: 100%; background: var(--success); border-radius: 4px;"></div>
-                        </div>
-                    </div>
+            <!-- Encabezado con el botón de Caso Aleatorio Global -->
+            <div class="learning-hero mb-4">
+                <div>
+                    <span class="badge-pill">
+                        <i class="fa-solid fa-flask-vial"></i> Laboratorio Sandbox Multicanal
+                    </span>
+                    <h1 style="font-size: 1.85rem; font-weight: 800; margin-top: 0.45rem;">Centro de Simuladores por Vector</h1>
+                    <p class="text-muted mt-1" style="max-width: 720px; line-height: 1.55;">
+                        Selecciona uno de los 4 simuladores especializados. Dentro de cada recuadro puedes elegir qué ejemplo específico deseas practicar o lanzar un caso al azar.
+                    </p>
+                </div>
+                <div>
+                    <button type="button" id="btn-mision-aleatoria" class="btn-cisco-primary">
+                        <i class="fa-solid fa-shuffle"></i> Entrenar Caso Aleatorio Global (${todas.length} disponibles)
+                    </button>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.8rem;">
-                
-                <!-- Misión 1: Phishing (DESBLOQUEADA) -->
-                <div class="card mission-card" onclick="window.location.hash='#/simulador'" style="padding: 2.5rem; position: relative; overflow: hidden;">
-                    <div style="position: absolute; top: -20px; right: -20px; font-size: 8rem; color: var(--bg-main); z-index: 0; transform: rotate(-15deg);"><i class="fa-solid fa-envelope-open-text"></i></div>
-                    <div style="position: relative; z-index: 1;">
-                        <div style="width: 75px; height: 75px; background: var(--primary-bg); color: var(--primary); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 1.5rem; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);">
-                            <i class="fa-solid fa-envelope-open-text"></i>
+            <!-- 4 Recuadros Principales (Uno por cada Simulador) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem;">
+                ${this.metaVectores.map(meta => {
+                    const ejemplos = todas.filter(m => m.vector === meta.vector);
+                    const riesgoVector = AppModel.estadoUsuario.riesgoPorVector[meta.vector] ?? 50;
+
+                    return `
+                    <article class="cisco-course-card" style="cursor: default;">
+                        <!-- Cabecera Oscura del Simulador -->
+                        <div class="cisco-card-thumb" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); height: 135px; justify-content: flex-start; padding: 1.5rem; gap: 1.25rem;">
+                            <span class="cisco-level-badge">${ejemplos.length} Ejemplo${ejemplos.length === 1 ? '' : 's'} disponible${ejemplos.length === 1 ? '' : 's'}</span>
+                            
+                            <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(108, 192, 74, 0.18); border: 2px solid var(--cisco-green); color: var(--cisco-green); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; margin-top: 1rem;">
+                                <i class="fa-solid ${meta.icono}"></i>
+                            </div>
+                            <div style="color: white; margin-top: 1rem;">
+                                <div style="font-size: 0.75rem; color: var(--cisco-green); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Vector: ${meta.vector}
+                                </div>
+                                <h3 style="font-size: 1.2rem; font-weight: 800; color: white; margin-top: 0.15rem;">
+                                    ${meta.titulo}
+                                </h3>
+                            </div>
                         </div>
-                        <h3 style="margin-bottom: 0.5rem; font-weight: 800; font-size: 1.4rem;">Misión 1: Phishing</h3>
-                        <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem; line-height: 1.6;">Intercepción de correo institucional fraudulento. Identifica las señales de urgencia del ICETEX.</p>
-                        <div class="flex-between">
-                            <span style="background: var(--success-bg); color: var(--success); padding: 0.5rem 1.2rem; border-radius: 20px; font-weight: 700; font-size: 0.85rem;"><i class="fa-solid fa-unlock me-1"></i> Desbloqueada</span>
-                            <span style="color: var(--primary); font-weight: 700; font-size: 0.9rem;">Jugar <i class="fa-solid fa-arrow-right"></i></span>
+
+                        <!-- Cuerpo del Recuadro con Selector de Ejemplos -->
+                        <div class="cisco-card-body">
+                            <p class="cisco-card-desc" style="margin-bottom: 1rem;">
+                                ${meta.descripcion}
+                            </p>
+
+                            <!-- Barra de Vulnerabilidad del Usuario en este Vector -->
+                            <div style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.9rem; font-size: 0.82rem; margin-bottom: 1.15rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Tu vulnerabilidad actual en <strong>${meta.vector}</strong>:</span>
+                                <span class="badge-pill" style="background: ${riesgoVector >= 60 ? 'var(--danger-bg)' : 'var(--cisco-green-bg)'}; color: ${riesgoVector >= 60 ? '#991b1b' : '#2b5917'};">
+                                    ${riesgoVector}%
+                                </span>
+                            </div>
+
+                            ${ejemplos.length > 0 ? `
+                                <!-- Selector Desplegable de Ejemplos de este Ataque -->
+                                <div class="form-group mb-3">
+                                    <label style="font-size: 0.82rem; font-weight: 700; color: var(--cisco-dark); margin-bottom: 0.4rem; display: block;">
+                                        <i class="fa-solid fa-list-check text-primary me-1"></i> Elige el escenario o ejemplo a practicar:
+                                    </label>
+                                    <select class="form-input select-ejemplo-vector" data-vector="${meta.vector}" style="font-weight: 600;">
+                                        ${ejemplos.map((ej, idx) => `
+                                            <option value="${ej.id_mision}">
+                                                Ejemplo ${idx + 1}: ${ej.titulo} (${ej.dificultad} • ${ej.tiempo_limite}s)
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+
+                                <!-- Vista Previa Rápida del Ejemplo Seleccionado -->
+                                <div id="preview-vector-${meta.vector.replace(/\s+/g, '')}" style="background: #f8fafc; border-left: 3px solid var(--cisco-green); padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                                    <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">
+                                        <i class="fa-solid fa-circle-info text-primary"></i> Contexto del caso:
+                                    </strong>
+                                    <span class="preview-desc-texto">${ejemplos[0].descripcion_corta}</span>
+                                </div>
+
+                                <!-- Botones de Acción: Practicar el elegido o Al Azar del Vector -->
+                                <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 0.65rem; margin-top: auto;">
+                                    <button type="button" class="btn-cisco-primary btn-practicar-seleccionado" data-vector="${meta.vector}" style="justify-content: center; padding: 0.7rem 1rem; font-size: 0.85rem;">
+                                        <i class="fa-solid fa-play"></i> Practicar Elegido
+                                    </button>
+                                    <button type="button" class="btn-cisco-outline btn-azar-vector" data-vector="${meta.vector}" style="justify-content: center; padding: 0.7rem 0.85rem; font-size: 0.83rem;" title="Elegir un ejemplo aleatorio de ${meta.vector}">
+                                        <i class="fa-solid fa-dice"></i> Al Azar
+                                    </button>
+                                </div>
+                            ` : `
+                                <p class="text-muted" style="font-size: 0.85rem;">No hay ejemplos activos en este vector.</p>
+                            `}
                         </div>
-                    </div>
-                </div>
-
-                <!-- Misión 2: Smishing (BLOQUEADA) -->
-                <div class="card mission-card locked" style="padding: 2.5rem; position: relative;">
-                    <div style="width: 75px; height: 75px; background: var(--bg-main); color: var(--text-muted); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 1.5rem; border: 1px solid var(--border);">
-                        <i class="fa-solid fa-mobile-screen"></i>
-                    </div>
-                    <h3 style="margin-bottom: 0.5rem; font-weight: 800; font-size: 1.4rem;">Misión 2: Smishing</h3>
-                    <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem; line-height: 1.6;">Ataque por mensaje de texto (SMS). Suplantación de empresas de mensajería locales (4-7-2).</p>
-                    <span style="background: var(--bg-main); color: var(--text-muted); padding: 0.5rem 1.2rem; border-radius: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid var(--border);"><i class="fa-solid fa-lock me-1"></i> Requiere Nivel 2</span>
-                </div>
-
-                <!-- Misión 3: Vishing (BLOQUEADA) -->
-                <div class="card mission-card locked" style="padding: 2.5rem; position: relative;">
-                    <div style="width: 75px; height: 75px; background: var(--bg-main); color: var(--text-muted); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 1.5rem; border: 1px solid var(--border);">
-                        <i class="fa-solid fa-headset"></i>
-                    </div>
-                    <h3 style="margin-bottom: 0.5rem; font-weight: 800; font-size: 1.4rem;">Misión 3: Vishing</h3>
-                    <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem; line-height: 1.6;">Ingeniería social telefónica. Evita entregar tu código de verificación bancario a un falso asesor.</p>
-                    <span style="background: var(--bg-main); color: var(--text-muted); padding: 0.5rem 1.2rem; border-radius: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid var(--border);"><i class="fa-solid fa-lock me-1"></i> Requiere Nivel 3</span>
-                </div>
-
+                    </article>
+                    `;
+                }).join('')}
             </div>
         </section>
         `;

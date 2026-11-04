@@ -81,7 +81,7 @@ const AprendizajePage = {
         `;
     },
 
-    // 3. Renderiza la Página de Detalle del Curso Estilo Cisco (Imagen 3)
+    // 3. Renderiza la Página de Detalle del Curso Estilo Cisco con Logros y Habilidades Dinámicas
     renderVistaDetalleCurso: function(curso) {
         const imgPortada = this.obtenerPortadaCurso(curso);
         const materiales = Array.isArray(curso.materiales) ? curso.materiales : [];
@@ -89,16 +89,28 @@ const AprendizajePage = {
         const materialesPost = materiales.filter(m => m.es_post_quiz);
         const quizzes = Array.isArray(curso.quizzes) ? curso.quizzes : [];
 
+        // Habilidades dinámicas del curso (editables por el Admin)
+        const habilidades = Array.isArray(curso.habilidades) && curso.habilidades.length > 0
+            ? curso.habilidades
+            : AppModel.obtenerHabilidadesPorDefecto(curso.categoria);
+
+        // Estado real de los logros para este usuario
+        const progreso = (AppModel.estadoUsuario.progresoCursos || {})[curso.id_curso];
+        const logrosDesbloqueados = Boolean(progreso && progreso.completado);
+        const puntajeGuardado = progreso ? progreso.puntaje_quiz : null;
+
+        const estiloMedalla = logrosDesbloqueados
+            ? 'border: 2px solid var(--cisco-green); background: var(--cisco-green-bg); color: #2b5917;'
+            : 'border: 2px dashed #cbd5e1; background: #f1f5f9; color: #94a3b8; opacity: 0.75;';
+
         return `
         <section id="aprendizaje-detalle" class="view-section active">
-            <!-- Migas de pan / Botón Volver -->
             <div class="mb-3">
                 <button type="button" id="btn-volver-catalogo" class="btn" style="padding: 0.5rem 1rem;">
                     <i class="fa-solid fa-arrow-left"></i> Volver al catálogo de cursos
                 </button>
             </div>
 
-            <!-- Banner Superior de 2 Columnas (Imagen 3 de Cisco) -->
             <div class="cisco-detail-banner">
                 <div class="cisco-detail-left">
                     <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
@@ -139,10 +151,9 @@ const AprendizajePage = {
                 </div>
             </div>
 
-            <!-- Cuerpo Inferior de 2 Columnas: Izquierda (Acordeones y Examen) / Derecha (Specs e Insignias) -->
             <div class="cisco-detail-body-grid">
                 
-                <!-- Columna Principal Izquierda -->
+                <!-- Columna Izquierda: Acordeones -->
                 <div>
                     <div class="cisco-tabs-bar">
                         <span class="cisco-tab-item active">Descripción y Currículo</span>
@@ -158,10 +169,8 @@ const AprendizajePage = {
                         Lo que aprenderás en este curso
                     </h2>
 
-                    <!-- LISTA DE ACORDEONES ESTILO CISCO -->
                     <div class="cisco-accordion-list" id="lista-acordeones-curso">
                         
-                        <!-- Módulo 1: ¿Cómo funciona el ataque? -->
                         <div class="cisco-accordion-item open">
                             <button type="button" class="cisco-accordion-header">
                                 <div class="cisco-acc-left">
@@ -175,7 +184,6 @@ const AprendizajePage = {
                             </div>
                         </div>
 
-                        <!-- Módulo 2: Señales de Alerta y Protocolo de Prevención -->
                         <div class="cisco-accordion-item">
                             <button type="button" class="cisco-accordion-header">
                                 <div class="cisco-acc-left">
@@ -201,7 +209,6 @@ const AprendizajePage = {
                             </div>
                         </div>
 
-                        <!-- Módulos Dinámicos Multimedia Pre-Quiz -->
                         ${materialesPre.map((mat, idx) => `
                             <div class="cisco-accordion-item">
                                 <button type="button" class="cisco-accordion-header">
@@ -217,7 +224,6 @@ const AprendizajePage = {
                             </div>
                         `).join('')}
 
-                        <!-- Acordeón del Examen Final del Curso (Quiz) -->
                         <div class="cisco-accordion-item" id="acordeon-quiz-final">
                             <button type="button" class="cisco-accordion-header">
                                 <div class="cisco-acc-left">
@@ -231,10 +237,21 @@ const AprendizajePage = {
                                     <form id="form-quiz-curso" data-curso-id="${curso.id_curso}">
                                         ${quizzes.map((q, qIndex) => {
                                             const opciones = Array.isArray(q.opciones) ? q.opciones : JSON.parse(q.opciones || '[]');
+                                            let apoyoQuizHTML = '';
+                                            if (q.recurso_apoyo_url) {
+                                                if (q.tipo_recurso_apoyo === 'imagen') {
+                                                    apoyoQuizHTML = `<img src="${q.recurso_apoyo_url}" style="width:100%; max-height:220px; object-fit:contain; border-radius:8px; margin-bottom:0.75rem; border:1px solid var(--border);">`;
+                                                } else if (q.tipo_recurso_apoyo === 'audio') {
+                                                    apoyoQuizHTML = `<audio src="${q.recurso_apoyo_url}" controls style="width:100%; margin-bottom:0.75rem;"></audio>`;
+                                                } else if (q.tipo_recurso_apoyo === 'video') {
+                                                    apoyoQuizHTML = `<video src="${q.recurso_apoyo_url}" controls style="width:100%; max-height:220px; border-radius:8px; margin-bottom:0.75rem;"></video>`;
+                                                }
+                                            }
                                             return `
                                             <div class="quiz-question-block mb-3">
                                                 <div class="quiz-topic-badge">Pregunta ${qIndex + 1}</div>
                                                 <p class="quiz-question-title">${q.pregunta}</p>
+                                                ${apoyoQuizHTML}
                                                 <div class="quiz-options">
                                                     ${opciones.map((op, opIndex) => `
                                                         <label class="quiz-option-label">
@@ -258,9 +275,8 @@ const AprendizajePage = {
                             </div>
                         </div>
 
-                        <!-- Acordeones Post-Quiz (Refuerzo) -->
                         ${materialesPost.map(mat => `
-                            <div class="cisco-accordion-item seccion-post-quiz ${quizzes.length > 0 ? 'hidden' : ''}">
+                            <div class="cisco-accordion-item seccion-post-quiz ${quizzes.length > 0 && !logrosDesbloqueados ? 'hidden' : ''}">
                                 <button type="button" class="cisco-accordion-header">
                                     <div class="cisco-acc-left">
                                         <div class="cisco-acc-circle"><i class="fa-solid fa-award"></i></div>
@@ -277,7 +293,7 @@ const AprendizajePage = {
                     </div>
                 </div>
 
-                <!-- Columna Derecha: Especificaciones, Logros y Habilidades (Imagen 3 de Cisco) -->
+                <!-- Columna Derecha: Especificaciones, Logros Dinámicos y Habilidades Dinámicas -->
                 <aside>
                     <div class="cisco-sidebar-card">
                         <div class="cisco-specs-row">
@@ -299,26 +315,40 @@ const AprendizajePage = {
                             </div>
                         </div>
 
-                        <h4 style="font-size: 0.92rem; font-weight: 800; color: var(--cisco-dark);">Logros del Curso</h4>
-                        <p class="text-muted" style="font-size: 0.78rem;">Insignias que desbloqueas al aprobar este módulo:</p>
-                        <div class="cisco-badges-row">
-                            <div class="cisco-achievement-badge" title="Analista de Amenazas"><i class="fa-solid ${curso.icono || 'fa-shield-halved'}"></i></div>
-                            <div class="cisco-achievement-badge" title="Defensor Digital"><i class="fa-solid fa-user-check"></i></div>
-                            <div class="cisco-achievement-badge" title="Criterio Forense"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+                        <div class="flex-between">
+                            <h4 style="font-size: 0.92rem; font-weight: 800; color: var(--cisco-dark);">Logros del Curso</h4>
+                            <span id="badge-estado-logros" class="badge-pill" style="background: ${logrosDesbloqueados ? 'var(--cisco-green-bg)' : '#f1f5f9'}; color: ${logrosDesbloqueados ? '#2b5917' : '#64748b'};">
+                                <i class="fa-solid ${logrosDesbloqueados ? 'fa-circle-check' : 'fa-lock'}"></i>
+                                ${logrosDesbloqueados ? `Desbloqueados (${puntajeGuardado}%)` : 'Bloqueados'}
+                            </span>
+                        </div>
+                        <p id="texto-estado-logros" class="text-muted mt-1" style="font-size: 0.78rem;">
+                            ${logrosDesbloqueados 
+                                ? 'Has aprobado la evaluación y obtenido las insignias de este módulo:' 
+                                : 'Aprueba el Examen Final con 60% o más para desbloquear estas insignias:'}
+                        </p>
+
+                        <div class="cisco-badges-row" id="contenedor-medallas-curso">
+                            <div class="cisco-achievement-badge" style="${estiloMedalla}" title="Especialista en ${curso.categoria}">
+                                <i class="fa-solid ${curso.icono || 'fa-shield-halved'}"></i>
+                            </div>
+                            <div class="cisco-achievement-badge" style="${estiloMedalla}" title="Defensor Digital Verificado">
+                                <i class="fa-solid fa-user-check"></i>
+                            </div>
+                            <div class="cisco-achievement-badge" style="${estiloMedalla}" title="Analista de Amenazas">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            </div>
                         </div>
 
                         <hr style="border: none; border-top: 1px solid var(--border); margin: 1.25rem 0;">
 
                         <h4 style="font-size: 0.92rem; font-weight: 800; color: var(--cisco-dark);">Habilidades que desarrollarás</h4>
                         <div class="cisco-skill-tags">
-                            <span class="cisco-skill-tag">${curso.categoria}</span>
-                            <span class="cisco-skill-tag">Análisis de Cabeceras</span>
-                            <span class="cisco-skill-tag">Prevención de Fraude</span>
-                            <span class="cisco-skill-tag">Respuesta a Incidentes</span>
+                            ${habilidades.map(hab => `<span class="cisco-skill-tag">${hab}</span>`).join('')}
                         </div>
 
                         <div class="mt-4">
-                            <a href="#/simulador" class="btn-cisco-outline w-100" style="justify-content: center;">
+                            <a href="#/misiones" class="btn-cisco-outline w-100" style="justify-content: center;">
                                 <i class="fa-solid fa-crosshairs"></i> Pasar al Simulador Práctico
                             </a>
                         </div>
