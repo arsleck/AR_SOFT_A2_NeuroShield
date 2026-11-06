@@ -155,34 +155,16 @@ La organización principal del proyecto es la siguiente:
 
 ```text
 AR_SOFT_A2_NeuroShield/
-├── index.html
+├── .vscode/
+│   └── settings.json
+├── backend/
+│   ├── uploads/
+│   ├── .env.example
+│   ├── package-lock.json
+│   ├── package.json
+│   └── server.js
 ├── css/
 │   └── styles.css
-├── js/
-│   ├── components/
-│   │   ├── navbar.js
-│   │   ├── sidebar.js
-│   │   └── tutorial.js
-│   ├── models/
-│   │   └── data.js
-│   ├── views/
-│   │   └── ui.js
-│   ├── controllers/
-│   │   └── app.js
-│   └── pages/
-│       ├── login.js
-│       ├── registro.js
-│       ├── dashboard.js
-│       ├── perfil.js
-│       ├── aprendizaje.js
-│       ├── misiones.js
-│       ├── simulador.js
-│       ├── resultados.js
-│       └── gestion.js
-├── backend/
-│   ├── server.js
-│   ├── package.json
-│   └── .env.example
 ├── database/
 │   └── neuroshield_db.sql
 ├── Diagramas/
@@ -192,24 +174,50 @@ AR_SOFT_A2_NeuroShield/
 │   ├── Diagrama.jpeg
 │   ├── Modelo MVC.jpeg
 │   └── Modelo relacional.jpeg
+├── js/
+│   ├── components/
+│   │   ├── sidebar.js
+│   │   ├── topbar.js
+│   │   └── tutorial.js
+│   ├── controllers/
+│   │   └── app.js
+│   ├── models/
+│   │   └── data.js
+│   ├── pages/
+│   │   ├── aprendizaje.js
+│   │   ├── dashboard.js
+│   │   ├── gestion.js
+│   │   ├── login.js
+│   │   ├── misiones.js
+│   │   ├── perfil.js
+│   │   ├── registro.js
+│   │   ├── resultados.js
+│   │   └── simulador.js
+│   └── views/
+│       └── ui.js
 ├── .gitignore
+├── Documentación del proyecto.docx
+├── Ficha_NeuroShield.png
+├── index.html
 └── README.md
 ```
 
-### Descripción de los directorios principales
+### Descripción de los directorios y archivos principales
 
-| Directorio o archivo | Responsabilidad |
+| **Directorio o archivo** | **Responsabilidad** |
 |---|---|
 | `index.html` | Punto de entrada de la aplicación SPA. |
-| `css/` | Hojas de estilo y sistema visual de la aplicación. |
-| `js/components/` | Componentes reutilizables de interfaz. |
-| `js/models/` | Estado del usuario, cálculos y sincronización con la API. |
-| `js/views/` | Renderizado de vistas y componentes visuales. |
-| `js/controllers/` | Navegación, eventos, validaciones y solicitudes al backend. |
-| `js/pages/` | Módulos correspondientes a las páginas de la aplicación. |
-| `backend/` | Servidor Express, rutas y lógica de servicios. |
-| `database/` | Script SQL para crear y poblar la base de datos. |
-| `Diagramas/` | Diagramas de arquitectura y modelado del proyecto. |
+| `css/styles.css` | Hojas de estilo y sistema visual inspirado en Cisco Academy. |
+| `js/components/` | Componentes reutilizables (`sidebar.js`, `topbar.js` y modales en `tutorial.js`). |
+| `js/controllers/app.js` | Enrutador SPA, eventos, validaciones Regex y solicitudes Fetch al backend. |
+| `js/models/data.js` | Estado del usuario, cálculos de vulnerabilidad y sincronización con la API. |
+| `js/pages/` | Módulos de las 9 vistas de la aplicación (`login`, `registro`, `dashboard`, `perfil`, `aprendizaje`, `misiones`, `simulador`, `resultados`, `gestion`). |
+| `js/views/ui.js` | Renderizado del DOM, terminal forense y gráficas con Chart.js. |
+| `backend/` | Servidor Express (`server.js`), configuración de paquetes (`package.json`) y carpeta multimedia (`uploads/`). |
+| `database/neuroshield_db.sql` | Script SQL para crear y poblar las 8 tablas relacionales en PostgreSQL (Neon). |
+| `Diagramas/` | Diagramas UML de arquitectura, modelo MVC y modelo relacional. |
+| `Documentación del proyecto.docx` | Documento maestro actualizado del proyecto. |
+| `Ficha_NeuroShield.png` | Ficha resumen visual del proyecto NeuroShield. |
 
 ---
 
@@ -248,7 +256,7 @@ La siguiente tabla resume las rutas principales contempladas en la integración:
 | `DELETE` | `/api/misiones/:id` | Desactiva un escenario de simulación. | `UPDATE` lógico |
 | `POST` | `/api/misiones/:id/evaluar` | Guarda la telemetría de la simulación y actualiza el nivel de riesgo. | Registro y actualización |
 | `GET` | `/api/admin/usuarios` | Consulta usuarios para la administración. | `SELECT` |
-| `PUT` | `/api/admin/usuarios` | Actualiza roles y asignaciones de grupo. | `UPDATE` |
+| `PUT` | `/api/admin/usuarios/:id` | Actualiza roles (`Estudiante`/`Administrador`) y asignación de grupo. | `UPDATE` |
 | `GET` | `/api/admin/grupos` | Consulta los grupos de capacitación. | `SELECT` |
 | `POST` | `/api/admin/grupos` | Crea un grupo de capacitación. | `INSERT` |
 | `DELETE` | `/api/admin/grupos/:id` | Elimina o desactiva un grupo según la lógica implementada. | Operación de eliminación |
