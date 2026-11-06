@@ -1,11 +1,10 @@
 // === EL CONTROLADOR (MVC) ===
-// Responsable del enrutamiento SPA, seguridad JWT, Diagnóstico Inicial, Perfil, Cursos, Simuladores, Gestión Admin y conexión con Backend.
+// Responsable del enrutamiento SPA, seguridad JWT, Diagnóstico Inicial, Perfil, Cursos, Simuladores (5 Dinámicas), Gestión Admin y conexión con Backend.
 
 const AppController = {
     timerInterval: null,
 
     init: async function() {
-        // Restaurar datos básicos del usuario si recargó la página con sesión activa
         const usuarioGuardado = sessionStorage.getItem('neuroshield_usuario');
         if (usuarioGuardado) {
             try {
@@ -18,7 +17,6 @@ const AppController = {
 
         window.addEventListener('hashchange', () => this.enrutador());
         this.asignarEventosGlobales();
-        // Cargamos cursos, misiones y progreso de logros desde PostgreSQL (Neon)
         await AppModel.sincronizarCursosDesdeBD();
         this.enrutador();
     },
@@ -40,14 +38,12 @@ const AppController = {
             return;
         }
         
-        // Bloquear acceso a #/gestion si el usuario no es Administrador
         if (rutaActual === '#/gestion' && AppModel.estadoUsuario.rol !== 'Administrador') {
             alert('Acceso restringido: Solo los administradores pueden ingresar al módulo de Gestión.');
             window.location.hash = '#/dashboard';
             return;
         }
 
-        // Detener síntesis de voz si salió del simulador
         if (rutaActual !== '#/simulador' && 'speechSynthesis' in window) {
             window.speechSynthesis.cancel();
         }
@@ -57,15 +53,16 @@ const AppController = {
             AppModel.estadoUsuario.diagnosticoCompletado = true;
         }
 
-        // Si entra a #/gestion siendo Administrador, sincronizamos usuarios, grupos y misiones antes de pintar la vista
         if (rutaActual === '#/gestion') {
             this.detenerTimer();
             Promise.all([
                 AppModel.sincronizarDatosAdminDesdeBD(),
                 AppModel.sincronizarMisionesDesdeBD()
             ]).then(() => {
-                UIView.renderizarPagina('#/gestion');
-                this.asignarEventos('#/gestion');
+                if (!document.getElementById('tutorial-overlay')) {
+                    UIView.renderizarPagina('#/gestion');
+                    this.asignarEventos('#/gestion');
+                }
             });
             return;
         }
@@ -122,7 +119,6 @@ const AppController = {
 
             cerrarModal();
 
-            // Redirigir o refrescar la vista de perfil para que vea su nuevo estado de seguridad
             window.location.hash = '#/perfil';
             UIView.renderizarPagina('#/perfil');
             this.asignarEventos('#/perfil');
@@ -146,6 +142,28 @@ const AppController = {
     },
 
     subirArchivoServidor: async function(archivo) {
+        const mime = archivo.type || 'application/octet-stream';
+        let tipoRecurso = 'documento';
+        if (mime.startsWith('image/')) tipoRecurso = 'imagen';
+        else if (mime.startsWith('video/')) tipoRecurso = 'video';
+        else if (mime.startsWith('audio/')) tipoRecurso = 'audio';
+
+        if (archivo.size <= 12 * 1024 * 1024) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    resolve({
+                        archivo_url: reader.result,
+                        mime_type: mime,
+                        tipo_recurso: tipoRecurso,
+                        nombre_original: archivo.name
+                    });
+                };
+                reader.onerror = () => reject(new Error('No se pudo leer el archivo seleccionado'));
+                reader.readAsDataURL(archivo);
+            });
+        }
+
         const formData = new FormData();
         formData.append('archivo', archivo);
 
@@ -168,77 +186,110 @@ const AppController = {
         const contenedorMateriales = document.getElementById('contenedor-materiales-curso');
         const contenedorQuizzes = document.getElementById('contenedor-quizzes-curso');
 
-        // 1. Subir imagen de portada desde la PC
         document.getElementById('input-upload-portada')?.addEventListener('change', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
             const file = e.target.files[0];
             if (!file) return;
+
             const inputUrl = document.getElementById('gc-portada');
-            inputUrl.value = 'Subiendo imagen...';
+            const previewBox = document.getElementById('portada-preview-box');
+            const previewImg = document.getElementById('portada-preview-img');
+
             try {
                 const data = await this.subirArchivoServidor(file);
                 inputUrl.value = data.archivo_url;
+                if (previewBox && previewImg) {
+                    previewImg.src = data.archivo_url;
+                    previewBox.classList.remove('hidden');
+                }
             } catch (err) {
                 inputUrl.value = '';
-                alert('No se pudo subir la imagen de portada.');
+                alert('No se pudo procesar la imagen seleccionada.');
             }
         });
 
-        // 2. Botón: + Añadir Módulo Multimedia
-        document.getElementById('btn-agregar-material')?.addEventListener('click', () => {
+        document.getElementById('gc-portada')?.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            const previewBox = document.getElementById('portada-preview-box');
+            const previewImg = document.getElementById('portada-preview-img');
+            if (val && previewBox && previewImg) {
+                previewImg.src = val;
+                previewBox.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('btn-agregar-material')?.addEventListener('click', (e) => {
+            e.preventDefault();
             const nuevoIndex = contenedorMateriales.querySelectorAll('.curso-material-item').length;
             contenedorMateriales.insertAdjacentHTML('beforeend', TutorialComponent.renderItemMaterial({}, nuevoIndex));
         });
 
-        // 3. Botón: + Añadir Pregunta de Quiz
-        document.getElementById('btn-agregar-quiz')?.addEventListener('click', () => {
+        document.getElementById('btn-agregar-quiz')?.addEventListener('click', (e) => {
+            e.preventDefault();
             const nuevoIndex = contenedorQuizzes.querySelectorAll('.curso-quiz-item').length;
             contenedorQuizzes.insertAdjacentHTML('beforeend', TutorialComponent.renderItemQuiz({}, nuevoIndex));
         });
 
-        // 4. Delegación de eventos para quitar ítems o subir archivos en bloques multimedia/quizzes
         const formModal = document.getElementById('form-gestionar-curso');
         formModal?.addEventListener('click', (e) => {
             const btnQuitarMat = e.target.closest('.btn-quitar-material');
             if (btnQuitarMat) {
+                e.preventDefault();
                 btnQuitarMat.closest('.curso-material-item')?.remove();
                 return;
             }
 
             const btnQuitarQuiz = e.target.closest('.btn-quitar-quiz');
             if (btnQuitarQuiz) {
+                e.preventDefault();
                 btnQuitarQuiz.closest('.curso-quiz-item')?.remove();
             }
         });
 
         formModal?.addEventListener('change', async (e) => {
             if (e.target.classList.contains('input-upload-material')) {
+                e.preventDefault();
+                e.stopPropagation();
+
                 const file = e.target.files[0];
                 if (!file) return;
                 const bloque = e.target.closest('.curso-material-item');
                 const inputUrl = bloque.querySelector('.mat-url');
                 const inputMime = bloque.querySelector('.mat-mime');
                 const selectTipo = bloque.querySelector('.mat-tipo');
+                const statusBox = bloque.querySelector('.mat-upload-status');
 
-                inputUrl.value = 'Subiendo archivo al servidor...';
                 try {
                     const data = await this.subirArchivoServidor(file);
                     inputUrl.value = data.archivo_url;
                     inputMime.value = data.mime_type || '';
                     if (data.tipo_recurso) selectTipo.value = data.tipo_recurso;
+                    if (statusBox) {
+                        statusBox.innerHTML = `
+                            <div style="color: var(--primary); font-weight: 700; margin-top: 4px;">
+                                <i class="fa-solid fa-circle-check"></i> Archivo cargado correctamente (${file.name})
+                            </div>
+                            ${data.tipo_recurso === 'imagen' ? `<img src="${data.archivo_url}" style="max-height: 95px; border-radius: 6px; margin-top: 6px; border: 1px solid var(--border);">` : ''}
+                        `;
+                    }
                 } catch (err) {
                     inputUrl.value = '';
-                    alert('Error al subir el archivo multimedia.');
+                    alert('Error al cargar el archivo multimedia.');
                 }
             }
 
             if (e.target.classList.contains('input-upload-quiz')) {
+                e.preventDefault();
+                e.stopPropagation();
+
                 const file = e.target.files[0];
                 if (!file) return;
                 const bloque = e.target.closest('.curso-quiz-item');
                 const inputUrl = bloque.querySelector('.quiz-url-apoyo');
                 const selectTipo = bloque.querySelector('.quiz-tipo-apoyo');
 
-                inputUrl.value = 'Subiendo archivo...';
                 try {
                     const data = await this.subirArchivoServidor(file);
                     inputUrl.value = data.archivo_url;
@@ -247,12 +298,11 @@ const AppController = {
                     }
                 } catch (err) {
                     inputUrl.value = '';
-                    alert('Error al subir el archivo para el quiz.');
+                    alert('Error al cargar el archivo para la pregunta del quiz.');
                 }
             }
         });
 
-        // 5. Guardar curso completo en Neon
         formModal?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const esEdicion = cursoExistente !== null;
@@ -344,7 +394,6 @@ const AppController = {
                 if (res.ok) {
                     await AppModel.sincronizarCursosDesdeBD();
                     cerrarModal();
-                    window.location.hash = '#/gestion';
                     UIView.renderizarPagina('#/gestion');
                     this.asignarEventos('#/gestion');
                 } else {
@@ -497,7 +546,6 @@ const AppController = {
                     resGlobal.innerHTML = `<i class="fa-solid fa-award"></i> Calificación obtenida: ${porcentaje}% (${aciertos} de ${quizzes.length} respuestas correctas).`;
                 }
 
-                // Si aprueba con 60% o más, desbloquear visualmente las Insignias/Logros del Curso
                 if (porcentaje >= 60) {
                     if (!AppModel.estadoUsuario.progresoCursos) {
                         AppModel.estadoUsuario.progresoCursos = {};
@@ -600,15 +648,6 @@ const AppController = {
                     UIView.renderizarPagina('#/aprendizaje');
                     this.asignarEventos('#/aprendizaje');
                 }
-                return;
-            }
-
-            // Lanzar misión específica al hacer clic en una tarjeta del Centro de Misiones (#/misiones)
-            const cardMision = e.target.closest('.card-iniciar-mision, .btn-lanzar-mision');
-            if (cardMision) {
-                const idMision = cardMision.getAttribute('data-mision-id');
-                AppModel.misionActivaId = parseInt(idMision, 10) || 1;
-                window.location.hash = '#/simulador';
                 return;
             }
 
@@ -798,9 +837,8 @@ const AppController = {
                 }
             });
 
-       // === 4. CENTRO DE MISIONES AGRUPADO EN 4 RECUADROS (#/misiones) ===
+        // === 4. CENTRO DE SIMULADORES EN 4 RECUADROS (#/misiones) ===
         } else if (rutaActual === '#/misiones') {
-            // Actualizar el texto de contexto cuando el usuario cambia de ejemplo en el <select>
             document.querySelectorAll('.select-ejemplo-vector').forEach(select => {
                 select.addEventListener('change', (e) => {
                     const idElegido = e.target.value;
@@ -814,49 +852,55 @@ const AppController = {
                 });
             });
 
-            // Botón: "Practicar Elegido" dentro de uno de los 4 recuadros
             document.querySelectorAll('.btn-practicar-seleccionado').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const vector = btn.getAttribute('data-vector');
-                    const select = document.querySelector(`.select-ejemplo-vector[data-vector="${vector}"]`);
-                    if (select && select.value) {
-                        AppModel.misionActivaId = parseInt(select.value, 10);
+                    const selectCaso = document.querySelector(`.select-ejemplo-vector[data-vector="${vector}"]`);
+                    const selectModo = document.querySelector(`.select-modo-vector[data-vector="${vector}"]`);
+                    if (selectCaso && selectCaso.value) {
+                        AppModel.misionActivaId = parseInt(selectCaso.value, 10);
+                        SimuladorPage.modoActivo = selectModo ? selectModo.value : 'reaccion';
                         window.location.hash = '#/simulador';
                     }
                 });
             });
 
-            // Botón: "Al Azar" dentro de uno de los 4 recuadros (elige al azar solo de ese tipo de ataque)
             document.querySelectorAll('.btn-azar-vector').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const vector = btn.getAttribute('data-vector');
                     const ejemplos = AppModel.catalogoMisiones.filter(m => m.vector === vector);
+                    const modos = ['reaccion', 'redflags', 'urlinspector', 'dialogo', 'protocolo'];
                     if (ejemplos.length > 0) {
-                        const azar = ejemplos[Math.floor(Math.random() * ejemplos.length)];
-                        AppModel.misionActivaId = azar.id_mision;
+                        const azarCaso = ejemplos[Math.floor(Math.random() * ejemplos.length)];
+                        AppModel.misionActivaId = azarCaso.id_mision;
+                        SimuladorPage.modoActivo = modos[Math.floor(Math.random() * modos.length)];
                         window.location.hash = '#/simulador';
                     }
                 });
             });
 
-            // Botón Superior: "Entrenar Caso Aleatorio Global" (elige entre todos los vectores)
             document.getElementById('btn-mision-aleatoria')?.addEventListener('click', () => {
                 const todas = AppModel.catalogoMisiones || [];
+                const modos = ['reaccion', 'redflags', 'urlinspector', 'dialogo', 'protocolo'];
                 if (todas.length > 0) {
                     const azar = todas[Math.floor(Math.random() * todas.length)];
                     AppModel.misionActivaId = azar.id_mision;
+                    SimuladorPage.modoActivo = modos[Math.floor(Math.random() * modos.length)];
                     window.location.hash = '#/simulador';
                 }
             });
 
-        // === 5. SIMULADOR PRÁCTICO (#/simulador) ===
+        // === 5. SIMULADOR PRÁCTICO CON 5 DINÁMICAS E INTERFAZ REALISTA (#/simulador) ===
         } else if (rutaActual === '#/simulador') {
-            document.getElementById('btn-caer')?.addEventListener('click', () => this.procesarSimulacion('caer'));
-            document.getElementById('btn-trampa-interna')?.addEventListener('click', () => this.procesarSimulacion('caer'));
-            document.getElementById('btn-ignorar')?.addEventListener('click', () => this.procesarSimulacion('ignorar'));
-            document.getElementById('btn-reportar')?.addEventListener('click', () => this.procesarSimulacion('reportar'));
+            document.querySelectorAll('.btn-cambiar-modo-sim').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    SimuladorPage.modoActivo = btn.getAttribute('data-modo');
+                    UIView.renderizarPagina('#/simulador');
+                    this.asignarEventos('#/simulador');
+                });
+            });
 
-            // Síntesis de voz realista para la misión de Vishing
+            // Síntesis de voz realista para Vishing
             document.getElementById('btn-reproducir-vishing')?.addEventListener('click', () => {
                 const mision = AppModel.catalogoMisiones.find(m => String(m.id_mision) === String(AppModel.misionActivaId));
                 if (mision && 'speechSynthesis' in window) {
@@ -868,6 +912,114 @@ const AppController = {
                 }
             });
 
+            // Sincronización visual en Modo 2 (Cazador de Red Flags): clic en el mensaje <-> checkbox inferior
+            const actualizarContadorRedFlags = () => {
+                const marcados = document.querySelectorAll('.chk-redflag:checked').length;
+                const badge = document.getElementById('contador-redflags-vivo');
+                if (badge) badge.innerText = `${marcados} / 3 fallos marcados`;
+
+                document.querySelectorAll('.zona-redflag-clicable').forEach(zona => {
+                    const idx = zona.getAttribute('data-flag-index');
+                    const chk = document.querySelector(`.chk-redflag[data-flag-index="${idx}"]`);
+                    if (chk && chk.checked) {
+                        zona.style.outline = '2px solid #ef4444';
+                        zona.style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
+                    } else {
+                        zona.style.outline = 'none';
+                        zona.style.backgroundColor = '';
+                    }
+                });
+            };
+
+            if (SimuladorPage.modoActivo === 'redflags') {
+                document.querySelectorAll('.zona-redflag-clicable').forEach(zona => {
+                    zona.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const idx = zona.getAttribute('data-flag-index');
+                        const chk = document.querySelector(`.chk-redflag[data-flag-index="${idx}"]`);
+                        if (chk) {
+                            chk.checked = !chk.checked;
+                            actualizarContadorRedFlags();
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.chk-redflag').forEach(chk => {
+                    chk.addEventListener('change', actualizarContadorRedFlags);
+                });
+            }
+
+            // Dinámica 1: Reacción Táctica
+            document.getElementById('btn-caer')?.addEventListener('click', () => this.procesarSimulacion('caer'));
+            document.getElementById('btn-trampa-interna')?.addEventListener('click', () => {
+                if (SimuladorPage.modoActivo !== 'redflags') {
+                    this.procesarSimulacion('caer');
+                }
+            });
+            document.getElementById('btn-ignorar')?.addEventListener('click', () => this.procesarSimulacion('ignorar'));
+            document.getElementById('btn-reportar')?.addEventListener('click', () => this.procesarSimulacion('reportar'));
+
+            // Dinámica 2: Cazador de Red Flags
+            document.getElementById('btn-evaluar-redflags')?.addEventListener('click', () => {
+                const checks = document.querySelectorAll('.chk-redflag');
+                let fallosDetectados = 0;
+                let falsosPositivos = 0;
+
+                checks.forEach(chk => {
+                    const esFalloReal = chk.getAttribute('data-es-fallo') === 'true';
+                    if (chk.checked && esFalloReal) fallosDetectados++;
+                    if (chk.checked && !esFalloReal) falsosPositivos++;
+                });
+
+                if (fallosDetectados === 3 && falsosPositivos === 0) {
+                    this.procesarSimulacion('reportar');
+                } else if (fallosDetectados >= 2 && falsosPositivos <= 1) {
+                    this.procesarSimulacion('ignorar');
+                } else {
+                    this.procesarSimulacion('caer');
+                }
+            });
+
+            // Dinámica 3: Auditoría Forense de URLs y Cabeceras
+            document.getElementById('btn-evaluar-url')?.addEventListener('click', () => {
+                const r1 = document.getElementById('url-audit-1')?.value;
+                const r2 = document.getElementById('url-audit-2')?.value;
+                if (!r1 || !r2) return alert('Por favor responde ambas preguntas de auditoría técnica.');
+
+                if (r1 === 'correcto' && r2 === 'correcto') {
+                    this.procesarSimulacion('reportar');
+                } else if (r1 === 'correcto' || r2 === 'correcto') {
+                    this.procesarSimulacion('ignorar');
+                } else {
+                    this.procesarSimulacion('caer');
+                }
+            });
+
+            // Dinámica 4: Escudo de Diálogo
+            document.getElementById('btn-evaluar-dialogo')?.addEventListener('click', () => {
+                const seleccionado = document.querySelector('input[name="radio_dialogo_sim"]:checked');
+                if (!seleccionado) return alert('Selecciona una opción de respuesta para continuar.');
+                this.procesarSimulacion(seleccionado.value);
+            });
+
+            // Dinámica 5: Protocolo SOC
+            document.getElementById('btn-evaluar-protocolo')?.addEventListener('click', () => {
+                const selects = document.querySelectorAll('.soc-step-select');
+                let correctos = 0;
+                selects.forEach(s => {
+                    if (s.value === s.getAttribute('data-correct-order')) correctos++;
+                });
+
+                if (correctos === 4) {
+                    this.procesarSimulacion('reportar');
+                } else if (correctos >= 2) {
+                    this.procesarSimulacion('ignorar');
+                } else {
+                    this.procesarSimulacion('caer');
+                }
+            });
+
         // === 6. PANEL DE GESTIÓN ADMINISTRATIVA (#/gestion) ===
         } else if (rutaActual === '#/gestion') {
             const token = sessionStorage.getItem('neuroshield_token');
@@ -876,7 +1028,6 @@ const AppController = {
                 'Authorization': `Bearer ${token}`
             };
 
-            // Navegación entre las 4 pestañas: Cursos | Simuladores | Usuarios | Grupos
             document.querySelectorAll('.btn-tab-admin').forEach(btn => {
                 btn.addEventListener('click', () => {
                     GestionPage.tabActiva = btn.getAttribute('data-tab');
@@ -885,7 +1036,6 @@ const AppController = {
                 });
             });
 
-            // A) Eventos de Cursos
             document.getElementById('btn-nuevo-curso')?.addEventListener('click', () => {
                 document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioCurso(null));
                 this.activarEventosFormularioCurso(null);
@@ -925,7 +1075,6 @@ const AppController = {
                 });
             });
 
-            // B) Eventos de Simuladores / Ataques
             document.getElementById('btn-nueva-mision')?.addEventListener('click', () => {
                 document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioMision(null));
                 this.activarEventosFormularioMision(null);
@@ -963,7 +1112,6 @@ const AppController = {
                 });
             });
 
-            // C) Eventos de Usuarios
             document.querySelectorAll('.btn-guardar-usuario-admin').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const userId = btn.getAttribute('data-user-id');
@@ -1000,7 +1148,6 @@ const AppController = {
                 });
             });
 
-            // D) Eventos de Grupos
             document.getElementById('form-crear-grupo')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const nombre_grupo = document.getElementById('grupo-nombre').value.trim();

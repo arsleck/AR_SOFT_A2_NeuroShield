@@ -58,24 +58,51 @@ const AprendizajePage = {
         `;
     },
 
-    // 2. Renderiza cualquier archivo multimedia dentro de los acordeones
+    // 2. Renderiza cualquier archivo multimedia dentro de los acordeones + Botón de Descarga
     renderVisorMultimedia: function(mat) {
         let mediaHTML = '';
         if (mat.archivo_url) {
+            const nombreDescarga = (mat.titulo || 'recurso_neuroshield').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const botonDescarga = `
+                <div style="margin-top: 0.65rem; display: flex; justify-content: flex-end;">
+                    <a href="${mat.archivo_url}" download="${nombreDescarga}" target="_blank" class="btn-cisco-outline" style="padding: 0.4rem 0.95rem; font-size: 0.78rem;">
+                        <i class="fa-solid fa-download"></i> Descargar ${mat.tipo_recurso.toUpperCase()}
+                    </a>
+                </div>
+            `;
+
             if (mat.tipo_recurso === 'imagen') {
-                mediaHTML = `<img src="${mat.archivo_url}" alt="${mat.titulo}" style="width:100%; max-height:360px; object-fit:cover; border-radius:8px; margin-top:0.75rem; border:1px solid var(--border);">`;
+                mediaHTML = `
+                <div style="margin-top: 0.75rem;">
+                    <img src="${mat.archivo_url}" alt="${mat.titulo}" style="width:100%; max-height:420px; object-fit:contain; background:#f8fafc; border-radius:8px; border:1px solid var(--border);">
+                    ${botonDescarga}
+                </div>`;
             } else if (mat.tipo_recurso === 'video') {
-                mediaHTML = `<video src="${mat.archivo_url}" controls style="width:100%; max-height:360px; border-radius:8px; margin-top:0.75rem; background:#000;"></video>`;
+                mediaHTML = `
+                <div style="margin-top: 0.75rem;">
+                    <video src="${mat.archivo_url}" controls style="width:100%; max-height:380px; border-radius:8px; background:#000;"></video>
+                    ${botonDescarga}
+                </div>`;
             } else if (mat.tipo_recurso === 'audio') {
-                mediaHTML = `<audio src="${mat.archivo_url}" controls style="width:100%; margin-top:0.75rem;"></audio>`;
+                mediaHTML = `
+                <div style="margin-top: 0.75rem; background: var(--surface); padding: 0.9rem; border-radius: 8px; border: 1px solid var(--border);">
+                    <audio src="${mat.archivo_url}" controls style="width:100%;"></audio>
+                    ${botonDescarga}
+                </div>`;
             } else {
-                mediaHTML = `<a href="${mat.archivo_url}" target="_blank" class="btn mt-2"><i class="fa-solid fa-file-arrow-down"></i> Descargar Material Adjunto</a>`;
+                mediaHTML = `
+                <div style="margin-top: 0.75rem; padding: 1rem; background: var(--bg-main); border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-file-pdf text-danger me-1"></i> <strong>Documento de estudio adjunto:</strong> ${mat.titulo}</span>
+                    <a href="${mat.archivo_url}" download="${nombreDescarga}" target="_blank" class="btn-cisco-primary" style="padding: 0.45rem 1rem; font-size: 0.82rem;">
+                        <i class="fa-solid fa-file-arrow-down"></i> Descargar Archivo
+                    </a>
+                </div>`;
             }
         }
 
         return `
         <div>
-            ${mat.contenido_texto ? `<p>${mat.contenido_texto}</p>` : ''}
+            ${mat.contenido_texto ? `<p style="white-space: pre-line; line-height: 1.7;">${mat.contenido_texto}</p>` : ''}
             ${mediaHTML}
         </div>
         `;
