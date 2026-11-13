@@ -11,6 +11,8 @@ En esta sección se incluye una representación gráfica que permite comparar lo
 **Figura 1.** Análisis comparativo de los antecedentes internacionales, nacionales y locales.  
 **Fuente:** elaboración propia.
 
+![Análisis integral de antecedentes](Estado%20del%20arte%20neuroshield.png)
+
 ## 3. Interpretación de los resultados
 
 Aquí se explican los resultados que muestran los gráficos. Se deben utilizar únicamente los datos comprobados de los antecedentes consultados.
