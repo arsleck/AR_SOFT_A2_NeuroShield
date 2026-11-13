@@ -34,7 +34,7 @@ Estos aspectos representan oportunidades para plantear una solución que no se l
 
 ## 5. Aporte de NeuroShield
 
-NeuroShield propone un simulador inteligente de escenarios ficticios de ciberataques, orientado a fortalecer la capacitación en ciberseguridad.
+NeuroShield propone un simulador inteligente de escenarios de ciberataques, orientado a fortalecer la capacitación en ciberseguridad.
 La propuesta busca que los usuarios interactúen con situaciones como phishing, ingeniería social y otros tipos de amenazas digitales. A partir de sus respuestas, decisiones, errores y tiempos de reacción, se plantea analizar su comportamiento e identificar las principales dificultades de aprendizaje.
 Como aporte, la arquitectura propuesta contempla una red neuronal para analizar los patrones de comportamiento y un servicio de inteligencia artificial generativa para apoyar la creación de contenidos de capacitación personalizados.
 De esta manera, NeuroShield busca ofrecer una experiencia de aprendizaje progresiva, adaptada a las necesidades de cada usuario. Estos servicios hacen parte de la propuesta arquitectónica y no se presentan como funcionalidades ya implementadas en el prototipo actual.
