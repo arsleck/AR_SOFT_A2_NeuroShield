@@ -4,5 +4,5 @@ Esta carpeta reúne la investigación que respalda la propuesta de NeuroShield. 
 
 ## Documentos
 
-- [Análisis del estado del arte](analisis_estado_del_arte.md)
-- [Diseño de la red neuronal](diseno_red_neuronal.md)
+- [Análisis del estado del arte](analisis%20estado%20del%20arte.md)
+- [Diseño de la red neuronal](diseno%20red%20neuronal.md)
