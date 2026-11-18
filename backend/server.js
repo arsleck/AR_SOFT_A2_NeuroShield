@@ -7,6 +7,8 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const iaClient = require('./services/iaClient');
+const analisisIA = require('./services/analisisIA');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -18,7 +20,7 @@ app.use(express.json({ limit: '20mb' }));
 // Conexión a PostgreSQL (Neon)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: true
+  ssl: process.env.DATABASE_SSL === 'false' ? false : true // 'false' solo para un PostgreSQL local
 });
 
 // =========================================================================
@@ -479,7 +481,7 @@ app.delete('/api/cursos/:id', verificarToken, soloAdmin, async (req, res) => {
 // 6. Registrar el progreso y calificación de un usuario al completar el Quiz de un curso
 app.post('/api/cursos/:id/progreso', async (req, res) => {
   const { id } = req.params;
-  const { id_usuario, puntaje_quiz, nuevo_riesgo } = req.body;
+  const { id_usuario, puntaje_quiz, nuevo_riesgo, respuestas } = req.body;
 
   if (!id_usuario) return res.status(400).json({ error: 'Falta id_usuario' });
 
@@ -497,14 +499,29 @@ app.post('/api/cursos/:id/progreso', async (req, res) => {
       [id_usuario, id, puntaje_quiz || 0]
     );
 
-    if (typeof nuevo_riesgo === 'number') {
+    // Guardar cada respuesta del examen: es parte de la entrada de la red neuronal
+    if (Array.isArray(respuestas)) {
+      for (const r of respuestas) {
+        await pool.query(
+          `INSERT INTO Respuestas_Quiz (id_usuario, id_curso, id_quiz, correcta)
+           VALUES ($1, $2, (SELECT id_quiz FROM Curso_Quizzes WHERE id_quiz = $3), $4)`,
+          [id_usuario, id, Number.isInteger(r.id_quiz) ? r.id_quiz : null, r.correcta === true]
+        );
+      }
+    }
+
+    // Integración con IA: la red estima la vulnerabilidad con el historial actualizado
+    const ia = await analizarConIA(id_usuario);
+
+    // Respaldo: si la IA no está disponible se conserva el cálculo por reglas del cliente
+    if (!ia.disponible && typeof nuevo_riesgo === 'number') {
       await pool.query(
         'UPDATE Usuarios SET nivel_vulnerabilidad = $1 WHERE id_usuario = $2',
         [Math.max(0, Math.min(100, nuevo_riesgo)), id_usuario]
       );
     }
 
-    res.json({ mensaje: 'Progreso guardado', progreso: progresoResult.rows[0] });
+    res.json({ mensaje: 'Progreso guardado', progreso: progresoResult.rows[0], ia });
   } catch (error) {
     console.error('Error al guardar progreso:', error);
     res.status(500).json({ error: 'No se pudo registrar el progreso del curso' });
@@ -715,24 +732,30 @@ app.delete('/api/misiones/:id', verificarToken, soloAdmin, async (req, res) => {
 // 5. Registrar el resultado de una simulación práctica jugada por un usuario
 app.post('/api/misiones/:id/evaluar', async (req, res) => {
   const { id } = req.params;
-  const { id_usuario, decision, impacto_riesgo, nuevo_riesgo_global } = req.body;
+  const { id_usuario, decision, impacto_riesgo, nuevo_riesgo_global, tiempo_respuesta } = req.body;
 
   try {
+    let ia = { disponible: false, motivo: 'Simulación sin usuario autenticado.' };
+
     if (id_usuario) {
       await pool.query(
-        `INSERT INTO Historial_Simulaciones (id_usuario, id_mision, decision, impacto_riesgo)
-         VALUES ($1, $2, $3, $4)`,
-        [id_usuario, id, decision, impacto_riesgo || 0]
+        `INSERT INTO Historial_Simulaciones (id_usuario, id_mision, decision, impacto_riesgo, tiempo_respuesta)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [id_usuario, id, decision, impacto_riesgo || 0, Number.isFinite(tiempo_respuesta) ? Math.round(tiempo_respuesta) : null]
       );
 
-      if (typeof nuevo_riesgo_global === 'number') {
+      // Integración con IA: la red estima la vulnerabilidad con el historial actualizado
+      ia = await analizarConIA(id_usuario);
+
+      // Respaldo: si la IA no está disponible se conserva el cálculo por reglas del cliente
+      if (!ia.disponible && typeof nuevo_riesgo_global === 'number') {
         await pool.query(
           'UPDATE Usuarios SET nivel_vulnerabilidad = $1 WHERE id_usuario = $2',
           [Math.max(0, Math.min(100, nuevo_riesgo_global)), id_usuario]
         );
       }
     }
-    res.json({ mensaje: 'Simulación registrada en base de datos' });
+    res.json({ mensaje: 'Simulación registrada en base de datos', ia });
   } catch (error) {
     console.error('Error al registrar simulación:', error);
     res.status(500).json({ error: 'Error interno al guardar la simulación' });
@@ -838,6 +861,81 @@ app.delete('/api/admin/grupos/:id', verificarToken, soloAdmin, async (req, res) 
   }
 });
 
-app.listen(port, () => {
+// =========================================================================
+// INTEGRACIÓN CON EL SERVICIO DE INTELIGENCIA ARTIFICIAL
+// El backend es el único componente que consume el servicio de IA
+// (ver services/iaClient.js y services/analisisIA.js).
+// =========================================================================
+
+// Un fallo de la IA nunca debe impedir guardar una simulación o un quiz.
+async function analizarConIA(idUsuario) {
+  try {
+    return await analisisIA.analizarUsuario(pool, idUsuario);
+  } catch (error) {
+    console.error('Error en el análisis de IA:', error);
+    return { disponible: false, motivo: 'No se pudo completar el análisis de IA.' };
+  }
+}
+
+// 1. Estado del servicio de IA y métricas del modelo (evidencia de comunicación)
+app.get('/api/ia/estado', async (req, res) => {
+  const estado = await iaClient.estado();
+  if (!estado) {
+    return res.status(503).json({ disponible: false, url: iaClient.IA_SERVICE_URL, error: 'Servicio de IA no disponible' });
+  }
+  res.json({ disponible: true, url: iaClient.IA_SERVICE_URL, ...estado });
+});
+
+// 2. Último análisis de IA de un usuario (el propio usuario o un administrador)
+app.get('/api/usuarios/:id/analisis-ia', verificarToken, async (req, res) => {
+  const { id } = req.params;
+  if (String(req.usuario.id) !== String(id) && req.usuario.rol !== 'Administrador') {
+    return res.status(403).json({ error: 'No puedes consultar el análisis de otro usuario' });
+  }
+  try {
+    res.json(await analisisIA.ultimoAnalisis(pool, id));
+  } catch (error) {
+    console.error('Error al consultar análisis de IA:', error);
+    res.status(500).json({ error: 'No se pudo consultar el análisis de IA' });
+  }
+});
+
+// 3. Borrador de curso y examen sugerido por la IA para un grupo o para todos (Solo Admin)
+app.post('/api/admin/ia/sugerir-curso', verificarToken, soloAdmin, async (req, res) => {
+  const { id_grupo, vector } = req.body || {};
+  try {
+    const sugerencia = await analisisIA.sugerirCursoParaGrupo(pool, parseInt(id_grupo, 10) || null, vector);
+    if (!sugerencia.disponible) return res.status(409).json({ error: sugerencia.motivo });
+    res.json(sugerencia);
+  } catch (error) {
+    console.error('Error al generar sugerencia de curso:', error);
+    res.status(500).json({ error: 'No se pudo generar la sugerencia de curso' });
+  }
+});
+
+// 4. Borrador de misión del simulador sugerido por la IA para un grupo o para todos (Solo Admin)
+app.post('/api/admin/ia/sugerir-mision', verificarToken, soloAdmin, async (req, res) => {
+  const { id_grupo, vector } = req.body || {};
+  try {
+    const sugerencia = await analisisIA.sugerirMisionParaGrupo(pool, parseInt(id_grupo, 10) || null, vector);
+    if (!sugerencia.disponible) return res.status(409).json({ error: sugerencia.motivo });
+    res.json(sugerencia);
+  } catch (error) {
+    console.error('Error al generar sugerencia de misión:', error);
+    res.status(500).json({ error: 'No se pudo generar la sugerencia de misión' });
+  }
+});
+
+app.listen(port, async () => {
   console.log(`Servidor Backend corriendo en http://localhost:${port}`);
+  try {
+    await analisisIA.asegurarEsquemaIA(pool);
+    console.log('Esquema de IA verificado (Respuestas_Quiz, Analisis_IA, tiempo_respuesta).');
+  } catch (error) {
+    console.error('No se pudo verificar el esquema de IA:', error.message);
+  }
+  const estadoIA = await iaClient.estado();
+  console.log(estadoIA
+    ? `Servicio de IA conectado en ${iaClient.IA_SERVICE_URL} (modelo ${estadoIA.modelo})`
+    : `AVISO: servicio de IA no disponible en ${iaClient.IA_SERVICE_URL}; se usará el motor de reglas.`);
 });
