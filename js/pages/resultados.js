@@ -55,6 +55,8 @@ const ResultadosPage = {
                     </ul>
                 </div>
             </div>
+
+            ${res ? AnalisisIAComponent.render(res.analisisIA) : ''}
         </section>
         `;
     }

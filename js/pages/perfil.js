@@ -126,6 +126,8 @@ const PerfilPage = {
                         </ul>
                     </div>
 
+                    ${AnalisisIAComponent.render(usuario.analisisIA, { compacto: true })}
+
                 </div>
 
             </div>

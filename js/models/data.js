@@ -258,6 +258,38 @@ const AppModel = {
         }
     },
 
+    // === INTEGRACIÓN CON EL SERVICIO DE IA ===
+    // Aplica al estado del usuario el análisis que devuelve el backend tras consultar la red neuronal.
+    aplicarAnalisisIA: function(ia) {
+        if (!ia || !ia.disponible) return false;
+
+        const nivelTexto = { Alto: 'alta', Medio: 'media', Bajo: 'baja' }[ia.nivel] || ia.nivel;
+        this.estadoUsuario.riesgoActual = ia.puntaje;
+        this.estadoUsuario.riesgoPorVector = { ...this.estadoUsuario.riesgoPorVector, ...(ia.riesgo_por_vector || {}) };
+        this.estadoUsuario.nivelConocimiento = `Vulnerabilidad ${nivelTexto} (estimada por IA)`;
+        if (Array.isArray(ia.recomendaciones) && ia.recomendaciones.length > 0) {
+            this.estadoUsuario.recomendacionesActuales = ia.recomendaciones;
+        }
+        this.estadoUsuario.analisisIA = ia;
+        sessionStorage.setItem('neuroshield_usuario', JSON.stringify(this.estadoUsuario));
+        return true;
+    },
+
+    // Recupera el último análisis de IA guardado en la base de datos (al iniciar sesión o recargar).
+    sincronizarAnalisisIADesdeBD: async function() {
+        const userId = this.estadoUsuario.id;
+        const token = sessionStorage.getItem('neuroshield_token');
+        if (!userId || !token) return;
+        try {
+            const res = await fetch(`http://localhost:3000/api/usuarios/${userId}/analisis-ia`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) this.aplicarAnalisisIA(await res.json());
+        } catch (e) {
+            console.error('No se pudo cargar el análisis de IA:', e);
+        }
+    },
+
     evaluarDiagnostico: function(respuestasPorVector) {
         Object.keys(respuestasPorVector).forEach(vector => {
             this.estadoUsuario.riesgoPorVector[vector] = respuestasPorVector[vector];
