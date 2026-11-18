@@ -10,9 +10,18 @@ const GestionPage = {
                     <h3><i class="fa-solid fa-book-open text-primary me-1"></i> Catálogo de Cursos en Base de Datos</h3>
                     <p class="text-muted" style="font-size: 0.85rem;">Crea nuevos cursos multimedia o modifica los existentes.</p>
                 </div>
-                <button type="button" id="btn-nuevo-curso" class="btn-cisco-primary">
-                    <i class="fa-solid fa-plus"></i> Crear Nuevo Curso
-                </button>
+                <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+                    <select id="select-grupo-ia" class="form-input" style="width: auto; padding: 0.55rem 0.7rem; font-size: 0.85rem;" title="Usuarios que analizará la IA">
+                        <option value="">Todos los usuarios</option>
+                        ${(AppModel.listaGruposAdmin || []).map(g => `<option value="${g.id_grupo}">${g.nombre_grupo}</option>`).join('')}
+                    </select>
+                    <button type="button" id="btn-sugerir-curso-ia" class="btn-cisco-outline" title="La red neuronal analiza el desempeño y propone un curso con su examen">
+                        <i class="fa-solid fa-brain"></i> Sugerir Curso con IA
+                    </button>
+                    <button type="button" id="btn-nuevo-curso" class="btn-cisco-primary">
+                        <i class="fa-solid fa-plus"></i> Crear Nuevo Curso
+                    </button>
+                </div>
             </div>
 
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
@@ -61,9 +70,18 @@ const GestionPage = {
                     <h3><i class="fa-solid fa-crosshairs text-primary me-1"></i> Escenarios de Simulación por Tipo de Ataque</h3>
                     <p class="text-muted" style="font-size: 0.85rem;">Añade múltiples ejemplos de Phishing, Smishing, Vishing e Ingeniería Social, o modifica sus textos, remitentes y pistas forenses.</p>
                 </div>
-                <button type="button" id="btn-nueva-mision" class="btn-cisco-primary">
-                    <i class="fa-solid fa-plus"></i> Crear Escenario de Ataque
-                </button>
+                <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+                    <select id="select-grupo-ia-mision" class="form-input" style="width: auto; padding: 0.55rem 0.7rem; font-size: 0.85rem;" title="Usuarios que analizará la IA">
+                        <option value="">Todos los usuarios</option>
+                        ${(AppModel.listaGruposAdmin || []).map(g => `<option value="${g.id_grupo}">${g.nombre_grupo}</option>`).join('')}
+                    </select>
+                    <button type="button" id="btn-sugerir-mision-ia" class="btn-cisco-outline" title="La red neuronal analiza el desempeño y propone un escenario de simulación">
+                        <i class="fa-solid fa-brain"></i> Sugerir Misión con IA
+                    </button>
+                    <button type="button" id="btn-nueva-mision" class="btn-cisco-primary">
+                        <i class="fa-solid fa-plus"></i> Crear Escenario de Ataque
+                    </button>
+                </div>
             </div>
 
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">

@@ -18,6 +18,7 @@ const AppController = {
         window.addEventListener('hashchange', () => this.enrutador());
         this.asignarEventosGlobales();
         await AppModel.sincronizarCursosDesdeBD();
+        await AppModel.sincronizarAnalisisIADesdeBD();
         this.enrutador();
     },
 
@@ -175,7 +176,8 @@ const AppController = {
         return await res.json();
     },
 
-    activarEventosFormularioCurso: function(cursoExistente) {
+    activarEventosFormularioCurso: function(cursoExistente, sugerenciaIA = null) {
+        // sugerenciaIA: respuesta del servicio de IA cuando el formulario se abrió con un borrador
         const cerrarModal = () => {
             const overlay = document.getElementById('tutorial-overlay');
             if (overlay) overlay.remove();
@@ -374,6 +376,11 @@ const AppController = {
                 quizzes: quizzes
             };
 
+            if (sugerenciaIA && sugerenciaIA.borrador) {
+                datosCurso.origen = 'Servicio IA';
+                datosCurso.prompt_generacion = sugerenciaIA.borrador.prompt_generacion || null;
+            }
+
             const btnSubmit = document.getElementById('btn-submit-curso-completo');
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando curso en Neon...';
@@ -410,7 +417,8 @@ const AppController = {
         });
     },
 
-    activarEventosFormularioMision: function(misionExistente) {
+    activarEventosFormularioMision: function(misionExistente, sugerenciaIA = null) {
+        // sugerenciaIA: respuesta del servicio de IA cuando el formulario se abrió con un borrador
         const cerrarModal = () => {
             const overlay = document.getElementById('tutorial-overlay');
             if (overlay) overlay.remove();
@@ -443,6 +451,11 @@ const AppController = {
                 url_trampa: document.getElementById('gm-url').value.trim(),
                 pistas_forenses: pistas_forenses
             };
+
+            if (sugerenciaIA && sugerenciaIA.borrador) {
+                datosMision.origen = 'Servicio IA';
+                datosMision.prompt_generacion = sugerenciaIA.borrador.prompt_generacion || null;
+            }
 
             const btnSubmit = document.getElementById('btn-submit-mision');
             btnSubmit.disabled = true;
@@ -510,6 +523,7 @@ const AppController = {
                 e.preventDefault();
                 const quizzes = Array.isArray(curso.quizzes) ? curso.quizzes : [];
                 let aciertos = 0;
+                const respuestasQuiz = []; // detalle por pregunta para el servicio de IA
 
                 quizzes.forEach((q, qIndex) => {
                     const opciones = Array.isArray(q.opciones) ? q.opciones : JSON.parse(q.opciones || '[]');
@@ -518,6 +532,7 @@ const AppController = {
                     const esCorrecta = opciones[indiceSeleccionado]?.es_correcta === true;
 
                     if (esCorrecta) aciertos++;
+                    respuestasQuiz.push({ id_quiz: q.id_quiz ?? null, correcta: esCorrecta });
 
                     const cajaFeedback = document.getElementById(`feedback-quiz-${qIndex}`);
                     if (cajaFeedback) {
@@ -591,15 +606,28 @@ const AppController = {
 
                 if (AppModel.estadoUsuario.id) {
                     try {
-                        await fetch(`http://localhost:3000/api/cursos/${curso.id_curso}/progreso`, {
+                        const resProgreso = await fetch(`http://localhost:3000/api/cursos/${curso.id_curso}/progreso`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 id_usuario: AppModel.estadoUsuario.id,
                                 puntaje_quiz: porcentaje,
-                                nuevo_riesgo: AppModel.estadoUsuario.riesgoActual
+                                nuevo_riesgo: AppModel.estadoUsuario.riesgoActual,
+                                respuestas: respuestasQuiz
                             })
                         });
+
+                        // Resultado de la red neuronal: reemplaza el ajuste por reglas y se muestra al usuario
+                        const datosProgreso = await resProgreso.json();
+                        if (AppModel.aplicarAnalisisIA(datosProgreso.ia) && resGlobal) {
+                            const ia = datosProgreso.ia;
+                            const primera = (ia.recomendaciones || [])[0];
+                            resGlobal.insertAdjacentHTML('beforeend', `
+                                <div style="margin-top: 0.5rem; font-weight: 600;">
+                                    <i class="fa-solid fa-brain"></i> Análisis de IA: vulnerabilidad ${AnalisisIAComponent.textoNivel(ia.nivel)} (${ia.puntaje}%).
+                                    ${primera ? primera.texto : ''}
+                                </div>`);
+                        }
                     } catch (err) {
                         console.error('No se pudo guardar el progreso del curso:', err);
                     }
@@ -777,6 +805,7 @@ const AppController = {
                     AppModel.estadoUsuario.riesgoActual = datos.usuario.riesgoActual;
 
                     await AppModel.sincronizarCursosDesdeBD();
+                    await AppModel.sincronizarAnalisisIADesdeBD();
                     sessionStorage.setItem('neuroshield_usuario', JSON.stringify(AppModel.estadoUsuario));
                     window.location.hash = '#/dashboard';
                 } catch (error) {
@@ -830,6 +859,7 @@ const AppController = {
                     AppModel.estadoUsuario.riesgoActual = datos.usuario.riesgoActual;
 
                     await AppModel.sincronizarCursosDesdeBD();
+                    await AppModel.sincronizarAnalisisIADesdeBD();
                     sessionStorage.setItem('neuroshield_usuario', JSON.stringify(AppModel.estadoUsuario));
                     window.location.hash = '#/dashboard';
                 } catch (error) {
@@ -1041,6 +1071,47 @@ const AppController = {
                 this.activarEventosFormularioCurso(null);
             });
 
+            // Borrador de curso y examen sugerido por el servicio de IA (el administrador revisa y publica)
+            document.getElementById('btn-sugerir-curso-ia')?.addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                const textoOriginal = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analizando con IA...';
+
+                try {
+                    const res = await fetch('http://localhost:3000/api/admin/ia/sugerir-curso', {
+                        method: 'POST',
+                        headers: authHeaders,
+                        body: JSON.stringify({ id_grupo: document.getElementById('select-grupo-ia')?.value || null })
+                    });
+                    const datos = await res.json();
+                    if (!res.ok) {
+                        alert(datos.error || 'No se pudo generar la sugerencia.');
+                        return;
+                    }
+
+                    document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioCurso(datos.borrador));
+                    this.activarEventosFormularioCurso(null, datos);
+
+                    // El formulario se abre como curso nuevo, identificado como borrador de IA
+                    const modal = document.getElementById('tutorial-overlay');
+                    const grupal = datos.analisis_grupal;
+                    const etiqueta = modal?.querySelector('.quiz-modal-header .badge-pill');
+                    const descripcion = modal?.querySelector('.quiz-modal-header p');
+                    const btnPublicar = document.getElementById('btn-submit-curso-completo');
+                    if (etiqueta) etiqueta.innerHTML = '<i class="fa-solid fa-brain"></i> Borrador sugerido por IA';
+                    if (descripcion) {
+                        descripcion.textContent = `La red neuronal analizó ${grupal.usuarios_analizados} usuario(s): el vector más débil es ${grupal.vector_prioritario} (${grupal.riesgo_promedio_por_vector[grupal.vector_prioritario]}% de riesgo promedio). Revisa y ajusta el contenido antes de publicarlo.`;
+                    }
+                    if (btnPublicar) btnPublicar.innerHTML = '<i class="fa-solid fa-circle-check"></i> Aprobar y Publicar Curso Sugerido';
+                } catch (err) {
+                    alert('Error de conexión con el servidor.');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = textoOriginal;
+                }
+            });
+
             document.querySelectorAll('.btn-editar-curso').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const id = btn.getAttribute('data-curso-id');
@@ -1073,6 +1144,56 @@ const AppController = {
                         }
                     }
                 });
+            });
+
+            // Borrador de misión del simulador sugerido por el servicio de IA (el administrador revisa y publica)
+            document.getElementById('btn-sugerir-mision-ia')?.addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                const textoOriginal = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analizando con IA...';
+
+                try {
+                    const res = await fetch('http://localhost:3000/api/admin/ia/sugerir-mision', {
+                        method: 'POST',
+                        headers: authHeaders,
+                        body: JSON.stringify({ id_grupo: document.getElementById('select-grupo-ia-mision')?.value || null })
+                    });
+                    const datos = await res.json();
+                    if (!res.ok) {
+                        alert(datos.error || 'No se pudo generar la sugerencia.');
+                        return;
+                    }
+
+                    // El formulario se abre como misión nueva, precargado con el borrador
+                    document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioMision(datos.borrador));
+                    this.activarEventosFormularioMision(null, datos);
+
+                    const modal = document.getElementById('tutorial-overlay');
+                    const grupal = datos.analisis_grupal;
+                    const borrador = datos.borrador;
+                    const etiqueta = modal?.querySelector('.quiz-modal-header .badge-pill');
+                    const titulo = modal?.querySelector('.quiz-modal-header h2');
+                    const descripcion = modal?.querySelector('.quiz-modal-header p');
+                    const btnPublicar = document.getElementById('btn-submit-mision');
+                    if (etiqueta) etiqueta.innerHTML = '<i class="fa-solid fa-brain"></i> Borrador sugerido por IA';
+                    if (titulo) titulo.textContent = borrador.titulo;
+                    if (descripcion) {
+                        const prisa = borrador.patron_tiempo && borrador.patron_tiempo.caidas_con_tiempo > 0
+                            ? ` El ${Math.round(borrador.patron_tiempo.proporcion_prisa * 100)} % de las caídas fueron respuestas apresuradas.`
+                            : '';
+                        const nivel = borrador.dificultad !== borrador.dificultad_recomendada
+                            ? ` Como ya existe un escenario ${borrador.dificultad_recomendada} de ese vector, se propone uno ${borrador.dificultad}.`
+                            : '';
+                        descripcion.textContent = `La red neuronal analizó ${grupal.usuarios_analizados} usuario(s): el vector más débil es ${borrador.vector} (${grupal.riesgo_promedio_por_vector[borrador.vector]}% de riesgo promedio) y se recomienda dificultad ${borrador.dificultad_recomendada}.${nivel}${prisa} Revisa y ajusta el escenario antes de publicarlo.`;
+                    }
+                    if (btnPublicar) btnPublicar.innerHTML = '<i class="fa-solid fa-circle-check"></i> Aprobar y Publicar Misión Sugerida';
+                } catch (err) {
+                    alert('Error de conexión con el servidor.');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = textoOriginal;
+                }
             });
 
             document.getElementById('btn-nueva-mision')?.addEventListener('click', () => {
@@ -1197,6 +1318,8 @@ const AppController = {
 
     procesarSimulacion: function(accion) {
         this.detenerTimer();
+        // Tiempo que tardó el usuario en decidir (entrada de la red neuronal)
+        const tiempoRespuesta = this.inicioSimulacion ? Math.round((Date.now() - this.inicioSimulacion) / 1000) : null;
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         const loader = document.getElementById('ai-loader');
         if(loader) loader.classList.remove('hidden');
@@ -1209,16 +1332,30 @@ const AppController = {
 
             if (AppModel.estadoUsuario.id) {
                 try {
-                    await fetch(`http://localhost:3000/api/misiones/${resultado.misionId}/evaluar`, {
+                    const resEvaluacion = await fetch(`http://localhost:3000/api/misiones/${resultado.misionId}/evaluar`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             id_usuario: AppModel.estadoUsuario.id,
                             decision: accion,
                             impacto_riesgo: resultado.impacto,
-                            nuevo_riesgo_global: resultado.nuevoRiesgo
+                            nuevo_riesgo_global: resultado.nuevoRiesgo,
+                            tiempo_respuesta: tiempoRespuesta
                         })
                     });
+
+                    // Resultado de la red neuronal: pasa a ser la vulnerabilidad oficial del usuario
+                    const datosEvaluacion = await resEvaluacion.json();
+                    const ia = datosEvaluacion.ia || null;
+                    if (AppModel.ultimoResultadoSimulacion) AppModel.ultimoResultadoSimulacion.analisisIA = ia;
+
+                    if (AppModel.aplicarAnalisisIA(ia)) {
+                        const detalle = Object.entries(ia.riesgo_por_vector).map(([v, r]) => `${v} ${r}%`).join(' · ');
+                        resultado.logs.push(`<span class='ok'>[SERVICIO DE IA] Red neuronal ${ia.modelo}: vulnerabilidad ${AnalisisIAComponent.textoNivel(ia.nivel)} (${ia.puntaje}%) con ${ia.interacciones_analizadas} interacciones analizadas.</span>`);
+                        resultado.logs.push(`Riesgo estimado por vector: ${detalle}`);
+                    } else {
+                        resultado.logs.push(`<span class='warn'>[SERVICIO DE IA] No disponible: se aplicó el motor de reglas.</span>`);
+                    }
                 } catch (e) {
                     console.error('Error guardando simulación en BD:', e);
                 }
@@ -1235,6 +1372,7 @@ const AppController = {
 
     iniciarTimer: function(segundosIniciales = 120) {
         let tiempo = segundosIniciales;
+        this.inicioSimulacion = Date.now();
         this.detenerTimer();
         const display = document.getElementById('time-display');
         if(display) display.innerText = `Quedan ${tiempo}s`;
