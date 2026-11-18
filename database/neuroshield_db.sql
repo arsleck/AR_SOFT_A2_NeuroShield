@@ -114,5 +114,39 @@ CREATE TABLE IF NOT EXISTS Historial_Simulaciones (
     id_mision INTEGER NOT NULL REFERENCES Misiones(id_mision) ON DELETE CASCADE,
     decision VARCHAR(30) NOT NULL,
     impacto_riesgo INTEGER NOT NULL,
+    tiempo_respuesta INTEGER DEFAULT NULL, -- segundos que tardó en decidir (entrada del servicio de IA)
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- INTEGRACIÓN CON EL SERVICIO DE INTELIGENCIA ARTIFICIAL
+-- El backend también crea estos objetos al iniciar si no existen.
+-- ============================================================================
+
+-- Para bases de datos creadas en fases anteriores
+ALTER TABLE Historial_Simulaciones ADD COLUMN IF NOT EXISTS tiempo_respuesta INTEGER;
+
+-- 9. Tabla de Respuestas por Pregunta en los Quizzes (entrada de la red neuronal)
+CREATE TABLE IF NOT EXISTS Respuestas_Quiz (
+    id_respuesta SERIAL PRIMARY KEY,
+    id_usuario INTEGER NOT NULL REFERENCES Usuarios(id_usuario) ON DELETE CASCADE,
+    id_curso INTEGER NOT NULL REFERENCES Cursos(id_curso) ON DELETE CASCADE,
+    id_quiz INTEGER REFERENCES Curso_Quizzes(id_quiz) ON DELETE SET NULL,
+    correcta BOOLEAN NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. Tabla de Análisis Generados por el Servicio de IA (salida de la red neuronal)
+CREATE TABLE IF NOT EXISTS Analisis_IA (
+    id_analisis SERIAL PRIMARY KEY,
+    id_usuario INTEGER NOT NULL REFERENCES Usuarios(id_usuario) ON DELETE CASCADE,
+    puntaje INTEGER NOT NULL CHECK (puntaje BETWEEN 0 AND 100),
+    nivel VARCHAR(10) NOT NULL,
+    riesgo_por_vector JSONB NOT NULL,
+    vectores_prioritarios JSONB DEFAULT '[]'::jsonb,
+    vectores_sin_practica JSONB DEFAULT '[]'::jsonb,
+    recomendaciones JSONB DEFAULT '[]'::jsonb,
+    interacciones_analizadas INTEGER DEFAULT 0,
+    modelo VARCHAR(40),
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
