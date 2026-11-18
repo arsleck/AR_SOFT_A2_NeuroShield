@@ -3,3 +3,10 @@ backend/node_modules/
 backend/.env
 .env
 backend/uploads/*
+
+# Servicio de IA (Python)
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
