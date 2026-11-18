@@ -3,9 +3,29 @@ const UIView = {
 
     renderizarPagina: function(rutaHash) {
         const root = document.getElementById('app-root');
+
+        // Si la tarjeta unificada de Login/Registro ya está en pantalla,
+        // solo deslizamos la animación CSS sin destruir ni recargar el DOM
+        const authCard = document.getElementById('ns-auth-card');
+        if (authCard && (rutaHash === '#/login' || rutaHash === '#/registro' || rutaHash === '')) {
+            const esReg = rutaHash === '#/registro';
+            authCard.setAttribute('data-mode', esReg ? 'registro' : 'login');
+
+            const titulo = document.getElementById('ns-auth-title');
+            const subtitulo = document.getElementById('ns-auth-subtitle');
+            if (titulo) {
+                titulo.innerText = esReg ? 'Crea tu cuenta' : 'Bienvenido a NeuroShield';
+            }
+            if (subtitulo) {
+                subtitulo.innerText = esReg
+                    ? 'Inicia tu entrenamiento adaptativo en ciberseguridad'
+                    : 'Ingresa tus credenciales para continuar tu entrenamiento';
+            }
+            return;
+        }
         
         if (rutaHash === '#/login' || rutaHash === '') {
-            root.innerHTML = LoginPage.render();
+            root.innerHTML = LoginPage.render('login');
         } else if (rutaHash === '#/registro') {
             root.innerHTML = RegistroPage.render();
         } else {
