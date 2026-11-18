@@ -1414,3 +1414,215 @@ a:hover {
 @media (max-width: 960px) {
     .profile-layout-grid { grid-template-columns: 1fr; }
 }
+
+/* ==========================================================================
+   ACCESO UNIFICADO MINIMALISTA (LOGIN + REGISTRO CON ANIMACIÓN FLUIDA)
+   ========================================================================== */
+.ns-auth-wrapper {
+    min-height: calc(100vh - 80px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.ns-auth-card {
+    width: 100%;
+    max-width: 440px;
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 20px 45px -15px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+    padding: 2.4rem 2.2rem;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.3s ease;
+}
+
+.ns-auth-brand {
+    text-align: center;
+    margin-bottom: 1.6rem;
+}
+
+.ns-auth-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--cisco-green-bg, #eef8e8);
+    color: var(--cisco-green, #6cc04a);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    margin-bottom: 0.75rem;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ns-auth-card:hover .ns-auth-logo {
+    transform: scale(1.06) rotate(-3deg);
+}
+
+/* Selector tipo píldora con indicador deslizante */
+.ns-auth-tabs {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+    margin-bottom: 1.75rem;
+}
+
+.ns-auth-glider {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: calc(50% - 4px);
+    height: calc(100% - 8px);
+    background: #ffffff;
+    border-radius: 9px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 1;
+}
+
+.ns-auth-card[data-mode="registro"] .ns-auth-glider {
+    transform: translateX(100%);
+}
+
+.ns-auth-tab {
+    position: relative;
+    z-index: 2;
+    background: none;
+    border: none;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    text-align: center;
+    text-decoration: none;
+}
+
+.ns-auth-card[data-mode="login"] .ns-auth-tab[data-target="login"],
+.ns-auth-card[data-mode="registro"] .ns-auth-tab[data-target="registro"] {
+    color: #0f172a;
+}
+
+/* Carrusel horizontal suave entre los 2 formularios */
+.ns-auth-viewport {
+    overflow: hidden;
+    width: 100%;
+}
+
+.ns-auth-track {
+    display: flex;
+    width: 200%;
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    align-items: flex-start;
+}
+
+.ns-auth-card[data-mode="login"] .ns-auth-track {
+    transform: translateX(0%);
+}
+
+.ns-auth-card[data-mode="registro"] .ns-auth-track {
+    transform: translateX(-50%);
+}
+
+.ns-auth-pane {
+    width: 50%;
+    padding: 0 2px;
+    box-sizing: border-box;
+    transition: opacity 0.3s ease;
+}
+
+.ns-auth-card[data-mode="login"] .ns-auth-pane-registro,
+.ns-auth-card[data-mode="registro"] .ns-auth-pane-login {
+    opacity: 0;
+    pointer-events: none;
+    height: 0;
+    overflow: hidden;
+}
+
+.ns-auth-card[data-mode="login"] .ns-auth-pane-login,
+.ns-auth-card[data-mode="registro"] .ns-auth-pane-registro {
+    opacity: 1;
+    height: auto;
+}
+
+/* Inputs minimalistas con icono integrado */
+.ns-input-group {
+    margin-bottom: 1.1rem;
+}
+
+.ns-input-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 0.38rem;
+}
+
+.ns-input-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.ns-input-field i {
+    position: absolute;
+    left: 0.95rem;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+    pointer-events: none;
+}
+
+.ns-input-field input {
+    width: 100%;
+    padding: 0.72rem 0.95rem 0.72rem 2.55rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    color: #0f172a;
+    background: #f8fafc;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.ns-input-field input:focus {
+    background: #ffffff;
+    border-color: var(--cisco-green, #6cc04a);
+    box-shadow: 0 0 0 3px rgba(108, 192, 74, 0.14);
+}
+
+.ns-input-field input:focus + i,
+.ns-input-field:focus-within i {
+    color: var(--cisco-green, #6cc04a);
+}
+
+.ns-auth-submit {
+    width: 100%;
+    padding: 0.78rem 1.2rem;
+    border-radius: 10px;
+    border: none;
+    background: #0f172a;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ns-auth-submit:hover {
+    background: #1e293b;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.14);
+}
