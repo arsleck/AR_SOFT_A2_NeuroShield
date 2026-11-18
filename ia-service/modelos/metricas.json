@@ -1,0 +1,51 @@
+{
+  "version_modelo": "cnn1d-v1",
+  "fecha_entrenamiento": "2026-11-16T06:42:16+00:00",
+  "datos": {
+    "origen": "sintético (entrenamiento/generar_dataset.py)",
+    "entrenamiento": 40000,
+    "validacion": 5000,
+    "prueba": 5000
+  },
+  "epocas_ejecutadas": 20,
+  "parametros": 32068,
+  "prueba": {
+    "mae_por_vector_puntos": {
+      "Phishing": 15.88,
+      "Smishing": 15.97,
+      "Vishing": 15.98,
+      "Ing. Social": 15.85
+    },
+    "mae_puntaje_global_puntos": 9.97,
+    "exactitud_nivel": 0.666,
+    "matriz_confusion_nivel": {
+      "orden": [
+        "Bajo",
+        "Medio",
+        "Alto"
+      ],
+      "filas_real_columnas_estimado": [
+        [
+          1646,
+          511,
+          39
+        ],
+        [
+          368,
+          911,
+          257
+        ],
+        [
+          35,
+          460,
+          773
+        ]
+      ]
+    }
+  },
+  "linea_base_tasa_de_fallos": {
+    "mae_por_vector_puntos": 22.59,
+    "mae_puntaje_global_puntos": 13.0,
+    "exactitud_nivel": 0.5998
+  }
+}

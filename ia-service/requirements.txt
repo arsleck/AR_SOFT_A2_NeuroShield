@@ -1,0 +1,9 @@
+# Servicio de IA de NeuroShield. Python 3.10 a 3.13.
+tensorflow>=2.18,<2.22
+fastapi>=0.110
+uvicorn>=0.29
+numpy
+
+# Solo para ejecutar las pruebas (pytest)
+pytest
+httpx
