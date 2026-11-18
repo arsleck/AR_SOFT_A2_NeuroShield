@@ -1,5 +1,5 @@
 # NeuroShield
-## Fase 4: Integración de Frontend, Backend y Base de Datos
+## Versión final: Frontend, Backend, Base de Datos y Servicio de Inteligencia Artificial
 
 **Proyecto:** Simulador inteligente de escenarios de ciberataques para la capacitación en ciberseguridad  
 **Asignatura:** Arquitectura de Software – Universidad Manuela Beltrán  
@@ -21,10 +21,13 @@
 9. [Matriz de pruebas de integración](#9-matriz-de-pruebas-de-integración)
 10. [Diagramas del proyecto](#10-diagramas-del-proyecto)
 11. [Trabajo futuro y escalabilidad](#11-trabajo-futuro-y-escalabilidad)
+12. [Integración del servicio de Inteligencia Artificial](#12-integración-del-servicio-de-inteligencia-artificial)
 
 ---
 
 ## 1. Descripción del avance (Fase 4)
+
+> **Versión final (cierre técnico):** sobre la integración descrita en esta sección se incorporó el servicio de Inteligencia Artificial, una red neuronal convolucional que estima la vulnerabilidad de cada usuario y orienta la creación de cursos. Su integración se documenta en la [sección 12](#12-integración-del-servicio-de-inteligencia-artificial).
 
 Esta entrega evoluciona el prototipo desarrollado en las fases anteriores hacia una arquitectura **Full-Stack integrada y con persistencia de datos**, manteniendo el patrón **Modelo-Vista-Controlador (MVC)** modularizado en el cliente y articulándolo con una **API RESTful** en el servidor, construida con Node.js y Express y conectada a una base de datos relacional en la nube: **PostgreSQL mediante Neon**.
 
@@ -158,6 +161,9 @@ AR_SOFT_A2_NeuroShield/
 ├── .vscode/
 │   └── settings.json
 ├── backend/
+│   ├── services/
+│   │   ├── analisisIA.js        # historial del usuario -> servicio de IA -> base de datos
+│   │   └── iaClient.js          # cliente HTTP del servicio de IA
 │   ├── uploads/
 │   ├── .env.example
 │   ├── package-lock.json
@@ -167,6 +173,25 @@ AR_SOFT_A2_NeuroShield/
 │   └── styles.css
 ├── database/
 │   └── neuroshield_db.sql
+├── ia-service/                  # Servicio de Inteligencia Artificial (Python)
+│   ├── app/
+│   │   ├── config.py            # vectores, características y umbrales
+│   │   ├── features.py          # historial -> matriz de entrada de la red
+│   │   ├── main.py              # API FastAPI: /health, /predict, /sugerir-curso, /sugerir-mision
+│   │   ├── modelo.py            # arquitectura de la red convolucional (Keras)
+│   │   ├── plantillas.py        # banco de contenidos para borradores de curso
+│   │   ├── plantillas_misiones.py # banco de escenarios para borradores de misión
+│   │   ├── predictor.py         # carga del modelo e inferencia
+│   │   └── recomendador.py      # recomendaciones y borradores de curso y misión
+│   ├── entrenamiento/
+│   │   ├── entrenar.py          # entrenamiento y métricas
+│   │   └── generar_dataset.py   # datos sintéticos de entrenamiento
+│   ├── modelos/
+│   │   ├── metricas.json        # métricas del modelo entrenado
+│   │   └── neuroshield_cnn.keras
+│   ├── tests/
+│   │   └── test_api.py
+│   └── requirements.txt
 ├── Diagramas/
 │   ├── Diagrama de casos de uso.jpeg
 │   ├── Diagrama de clases.jpeg
@@ -176,6 +201,7 @@ AR_SOFT_A2_NeuroShield/
 │   └── Modelo relacional.jpeg
 ├── js/
 │   ├── components/
+│   │   ├── analisisIA.js
 │   │   ├── sidebar.js
 │   │   ├── topbar.js
 │   │   └── tutorial.js
@@ -208,13 +234,15 @@ AR_SOFT_A2_NeuroShield/
 |---|---|
 | `index.html` | Punto de entrada de la aplicación SPA. |
 | `css/styles.css` | Hojas de estilo y sistema visual inspirado en Cisco Academy. |
-| `js/components/` | Componentes reutilizables (`sidebar.js`, `topbar.js` y modales en `tutorial.js`). |
+| `js/components/` | Componentes reutilizables (`sidebar.js`, `topbar.js`, modales en `tutorial.js` y la tarjeta de resultados de IA en `analisisIA.js`). |
 | `js/controllers/app.js` | Enrutador SPA, eventos, validaciones Regex y solicitudes Fetch al backend. |
 | `js/models/data.js` | Estado del usuario, cálculos de vulnerabilidad y sincronización con la API. |
 | `js/pages/` | Módulos de las 9 vistas de la aplicación (`login`, `registro`, `dashboard`, `perfil`, `aprendizaje`, `misiones`, `simulador`, `resultados`, `gestion`). |
 | `js/views/ui.js` | Renderizado del DOM, terminal forense y gráficas con Chart.js. |
 | `backend/` | Servidor Express (`server.js`), configuración de paquetes (`package.json`) y carpeta multimedia (`uploads/`). |
-| `database/neuroshield_db.sql` | Script SQL para crear y poblar las 8 tablas relacionales en PostgreSQL (Neon). |
+| `backend/services/` | Integración con IA: `iaClient.js` consume el servicio y `analisisIA.js` arma el historial, guarda el análisis y genera sugerencias. |
+| `ia-service/` | Servicio de Inteligencia Artificial: API FastAPI, red neuronal convolucional, entrenamiento, modelo entrenado y pruebas. |
+| `database/neuroshield_db.sql` | Script SQL para crear las 10 tablas relacionales en PostgreSQL (Neon), incluidas las dos de la integración con IA. |
 | `Diagramas/` | Diagramas UML de arquitectura, modelo MVC y modelo relacional. |
 | `Documentación del proyecto.docx` | Documento maestro actualizado del proyecto. |
 | `Ficha_NeuroShield.png` | Ficha resumen visual del proyecto NeuroShield. |
@@ -249,17 +277,21 @@ La siguiente tabla resume las rutas principales contempladas en la integración:
 | `POST` | `/api/cursos` | Crea un curso con módulos y preguntas. | `INSERT` transaccional |
 | `PUT` | `/api/cursos/:id` | Modifica un curso, sus habilidades, módulos y evaluaciones. | `UPDATE` |
 | `DELETE` | `/api/cursos/:id` | Desactiva un curso del catálogo. | `UPDATE` lógico |
-| `POST` | `/api/cursos/:id/progreso` | Registra la calificación y actualiza el progreso del usuario. | `INSERT` / `UPSERT` |
+| `POST` | `/api/cursos/:id/progreso` | Registra la calificación y las respuestas del examen, y solicita el análisis al servicio de IA. | `INSERT` / `UPSERT` |
 | `GET` | `/api/misiones` | Consulta escenarios activos para los simuladores. | `SELECT` |
 | `POST` | `/api/misiones` | Crea un escenario de simulación. | `INSERT` |
 | `PUT` | `/api/misiones/:id` | Modifica los parámetros, remitente y pistas forenses de una misión. | `UPDATE` |
 | `DELETE` | `/api/misiones/:id` | Desactiva un escenario de simulación. | `UPDATE` lógico |
-| `POST` | `/api/misiones/:id/evaluar` | Guarda la telemetría de la simulación y actualiza el nivel de riesgo. | Registro y actualización |
+| `POST` | `/api/misiones/:id/evaluar` | Guarda la telemetría de la simulación, solicita el análisis al servicio de IA y actualiza el nivel de riesgo. | Registro y actualización |
 | `GET` | `/api/admin/usuarios` | Consulta usuarios para la administración. | `SELECT` |
 | `PUT` | `/api/admin/usuarios/:id` | Actualiza roles (`Estudiante`/`Administrador`) y asignación de grupo. | `UPDATE` |
 | `GET` | `/api/admin/grupos` | Consulta los grupos de capacitación. | `SELECT` |
 | `POST` | `/api/admin/grupos` | Crea un grupo de capacitación. | `INSERT` |
 | `DELETE` | `/api/admin/grupos/:id` | Elimina o desactiva un grupo según la lógica implementada. | Operación de eliminación |
+| `GET` | `/api/ia/estado` | Verifica la comunicación con el servicio de IA y devuelve las métricas del modelo. | Ninguna |
+| `GET` | `/api/usuarios/:id/analisis-ia` | Recupera el último análisis de IA del usuario (requiere token). | `SELECT` |
+| `POST` | `/api/admin/ia/sugerir-curso` | Genera un borrador de curso y examen a partir del desempeño de un grupo (solo administrador). | `SELECT` |
+| `POST` | `/api/admin/ia/sugerir-mision` | Genera un borrador de misión del simulador a partir del desempeño de un grupo, sin repetir escenarios existentes (solo administrador). | `SELECT` |
 
 > **Nota:** las rutas se presentan como resumen funcional de la API descrita para esta fase. Para conocer el comportamiento exacto de cada endpoint, sus parámetros y validaciones, se debe consultar su implementación en `backend/server.js`.
 
@@ -274,6 +306,7 @@ Antes de ejecutar el proyecto, se requiere:
 - **Node.js 18 o superior.**
 - **npm**, incluido con Node.js.
 - Una instancia de **PostgreSQL**, configurada en Neon o en un entorno local.
+- **Python 3.10 a 3.13** con `pip`, para el servicio de Inteligencia Artificial.
 - Un navegador web moderno.
 - Visual Studio Code (opcional).
 - La extensión **Live Server** para ejecutar el frontend localmente (opcional).
@@ -282,8 +315,10 @@ Antes de ejecutar el proyecto, se requiere:
 
 1. Ingresa a la consola SQL de tu instancia de Neon o al entorno PostgreSQL que utilizarás.
 2. Abre el archivo `database/neuroshield_db.sql`.
-3. Ejecuta el contenido del script para crear las ocho tablas relacionales y cargar los datos iniciales definidos para cursos y misiones.
+3. Ejecuta el contenido del script para crear las tablas relacionales.
 4. Verifica que las tablas se hayan creado correctamente.
+
+> Si la base de datos ya existía de una fase anterior, no es necesario volver a ejecutar el script: al iniciar, el backend crea automáticamente las tablas `Respuestas_Quiz` y `Analisis_IA` y la columna `Historial_Simulaciones.tiempo_respuesta`.
 
 ### 7.3. Paso 2: Configurar el backend
 
@@ -302,6 +337,7 @@ Configura las variables de entorno con los datos de tu instancia:
 DATABASE_URL=postgresql://usuario:password@ep-tu-instancia.us-east-2.aws.neon.tech/neondb?sslmode=require
 JWT_SECRET=REEMPLAZAR_POR_UN_SECRETO_PROPIO
 PORT=3000
+IA_SERVICE_URL=http://localhost:8000
 ```
 
 **Importante:** reemplaza los valores de ejemplo por las credenciales correspondientes a tu entorno. No compartas ni publiques el archivo `.env`, ya que contiene información privada. Este archivo debe permanecer excluido del repositorio mediante `.gitignore`.
@@ -324,7 +360,29 @@ Puedes comprobar su disponibilidad mediante la ruta:
 http://localhost:3000/api/health
 ```
 
-### 7.4. Paso 3: Ejecutar el frontend
+### 7.4. Paso 3: Ejecutar el servicio de Inteligencia Artificial
+
+En otra terminal, desde la raíz del repositorio:
+
+```bash
+cd ia-service
+python -m venv .venv
+.venv\Scripts\activate          # En Linux o macOS: source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --port 8000
+```
+
+El repositorio ya incluye el modelo entrenado (`ia-service/modelos/neuroshield_cnn.keras`), por lo que no es necesario entrenarlo para ejecutar la aplicación. Para comprobar el servicio:
+
+```text
+http://localhost:8000/health        Estado del servicio y métricas del modelo
+http://localhost:8000/docs          Documentación interactiva de la API (Swagger)
+http://localhost:3000/api/ia/estado Comunicación backend -> servicio de IA
+```
+
+Al iniciar, el backend informa en consola si logró conectarse: `Servicio de IA conectado en http://localhost:8000 (modelo cnn1d-v1)`.
+
+### 7.5. Paso 4: Ejecutar el frontend
 
 Con el backend en funcionamiento:
 
@@ -339,16 +397,19 @@ http://127.0.0.1:5500/index.html#/login
 
 El frontend podrá comunicarse con el backend siempre que la URL de la API y la configuración CORS coincidan con el entorno local.
 
-### 7.5. Orden recomendado de ejecución
+### 7.6. Orden recomendado de ejecución
 
 1. Iniciar o verificar la base de datos PostgreSQL.
-2. Ejecutar el backend con `node server.js`.
-3. Abrir el frontend mediante Live Server.
-4. Ingresar a la aplicación y probar el registro o inicio de sesión.
+2. Ejecutar el servicio de IA con `uvicorn app.main:app --port 8000`.
+3. Ejecutar el backend con `node server.js`.
+4. Abrir el frontend mediante Live Server.
+5. Ingresar a la aplicación y probar el registro o inicio de sesión.
 
 ---
 
 ## 8. Reglas de negocio y evaluación adaptativa
+
+> **Actualización de la versión final:** la vulnerabilidad oficial del usuario la estima ahora el servicio de IA (sección 12). Las reglas descritas a continuación se conservan como retroalimentación inmediata en pantalla y como respaldo cuando el servicio de IA no está disponible.
 
 Durante las evaluaciones de los microcursos y las dinámicas del Sandbox, el sistema actualiza el índice de vulnerabilidad del usuario. El ajuste se aplica al vector correspondiente y repercute en el promedio global.
 
@@ -436,25 +497,239 @@ Presenta las entidades de la base de datos, sus atributos y las relaciones estab
 
 ## 11. Trabajo futuro y escalabilidad
 
-La estructura de la base de datos y los servicios REST contemplan los atributos `origen` y `prompt_generacion` en las entidades relacionadas con Cursos y Misiones. Estos campos permiten identificar la procedencia del contenido, por ejemplo:
+Los atributos `origen` y `prompt_generacion` de Cursos y Misiones identifican la procedencia del contenido (`Sistema`, `Administrador` o `Servicio IA`). En esta versión ya se usan: los cursos publicados a partir de un borrador de IA quedan marcados con `origen = 'Servicio IA'` y conservan en `prompt_generacion` la justificación del análisis que los originó.
 
-- `Sistema`
-- `Administrador`
-- `Red Neuronal IA`
+Líneas de evolución previstas:
 
-Esta estructura deja preparada la trazabilidad para una futura integración de un módulo de Inteligencia Artificial y Procesamiento de Lenguaje Natural (NLP).
-
-Como línea de evolución, se contempla incorporar modelos de aprendizaje automático o arquitecturas Transformer, como DistilBERT, y eventualmente servicios de generación asistida. El objetivo sería clasificar automáticamente los vectores de ataque y proponer nuevos escenarios de entrenamiento de acuerdo con las debilidades identificadas en los resultados estadísticos de los usuarios o grupos.
-
-Esta integración corresponde a una **proyección de trabajo futuro** y no debe interpretarse como una funcionalidad ya implementada en esta fase.
+- **Reentrenar la red con datos reales.** El modelo actual se entrenó con datos sintéticos (sección 12.7). Cuando la plataforma acumule historial real suficiente, el mismo procedimiento de entrenamiento puede ejecutarse con esos datos.
+- **Generación de texto asistida.** Los borradores de curso se arman hoy con plantillas revisables. Un modelo de lenguaje podría redactar contenido nuevo, manteniendo la aprobación del administrador.
+- **Medición de tiempo por pregunta** en los quizzes, para enriquecer la entrada de la red.
 
 ---
 
-## Estado de la fase
+## 12. Integración del servicio de Inteligencia Artificial
 
-La Fase 4 integra el frontend, el backend y la base de datos PostgreSQL en una solución Full-Stack. La aplicación incorpora autenticación, control de acceso por roles, gestión de microcursos, simulaciones multicanal, administración de contenidos y persistencia de resultados.
+### 12.1. Función de la IA dentro de la solución
 
-Las pruebas documentadas permiten verificar los principales flujos de registro, consulta, validación de datos y manejo de errores de conexión.
+El servicio de IA cumple dos funciones ligadas al propósito del proyecto:
+
+1. **Estimar la vulnerabilidad de cada usuario.** Después de cada simulación o examen, una red neuronal analiza el historial reciente del usuario y estima su nivel de vulnerabilidad global (0 a 100, clasificado en bajo, medio o alto) y su riesgo en cada vector de ataque: phishing, smishing, vishing e ingeniería social. Con ese resultado genera recomendaciones y selecciona los cursos que debería tomar.
+2. **Orientar al administrador en la creación de contenido.** A partir del desempeño de un grupo (o de todos los usuarios), el servicio identifica el vector más débil y el nivel adecuado, y propone un borrador de curso con su examen o un borrador de misión para el simulador. El administrador lo revisa, lo ajusta y decide si lo publica.
+
+### 12.2. Servicio y tecnología utilizados
+
+| Elemento | Tecnología |
+|---|---|
+| Servicio | Microservicio independiente en **Python** con **FastAPI** y **Uvicorn** (`ia-service/`). |
+| Modelo | **Red neuronal convolucional 1D** construida con **TensorFlow / Keras**. |
+| Entrada | Matriz de 20 interacciones × 9 características. |
+| Salida | 4 valores entre 0 y 1: vulnerabilidad estimada por vector. |
+| Tamaño | 32.068 parámetros; inferencia en CPU en milisegundos. |
+
+**Arquitectura de la red** (`ia-service/app/modelo.py`):
+
+```text
+Entrada (20, 9)
+  -> Conv1D 32 filtros, ventana 3, ReLU
+  -> Conv1D 64 filtros, ventana 5, ReLU
+  -> Conv1D 64 filtros, ventana 3, ReLU
+  -> GlobalAveragePooling + GlobalMaxPooling (concatenados)
+  -> Densa 64, ReLU -> Dropout 0.2
+  -> Densa 4, sigmoide   (Phishing, Smishing, Vishing, Ing. Social)
+```
+
+Se eligió una red convolucional porque el historial del usuario es una **secuencia ordenada**: los filtros recorren ventanas de 3 y 5 interacciones consecutivas y detectan patrones locales, como varios fallos seguidos en un mismo vector o respuestas muy rápidas que terminan en caída. El puntaje global es el promedio de los cuatro vectores y el nivel se obtiene con los mismos umbrales del perfil (menos de 40 bajo, 40 a 59 medio, 60 o más alto).
+
+### 12.3. Componente que realiza la integración
+
+El **backend (Express)** es el único componente que consume el servicio de IA. El frontend nunca lo llama directamente.
+
+| Archivo | Responsabilidad |
+|---|---|
+| `backend/services/iaClient.js` | Cliente HTTP del servicio (URL configurable, tiempo de espera y manejo de fallos). |
+| `backend/services/analisisIA.js` | Arma el historial desde PostgreSQL, invoca al cliente, guarda el análisis y calcula los cursos recomendados. |
+| `backend/server.js` | Invoca el análisis en `/api/misiones/:id/evaluar` y `/api/cursos/:id/progreso`, y expone los endpoints de IA. |
+
+```text
+Frontend (SPA)                Backend (Express)                 Servicio de IA (FastAPI)
+     |  POST /api/misiones/:id/evaluar  |                                  |
+     |--------------------------------->|  1. Guarda la simulación         |
+     |                                  |  2. Lee las últimas 20           |
+     |                                  |     interacciones (PostgreSQL)   |
+     |                                  |  POST /predict                   |
+     |                                  |--------------------------------->|  3. Matriz 20x9
+     |                                  |                                  |  4. Red convolucional
+     |                                  |  { puntaje, nivel, riesgo, ... } |  5. Recomendaciones
+     |                                  |<---------------------------------|
+     |                                  |  6. Guarda en Analisis_IA y      |
+     |   { mensaje, ia: {...} }         |     actualiza Usuarios           |
+     |<---------------------------------|                                  |
+  7. Muestra nivel, riesgo por vector,
+     recomendaciones y cursos sugeridos
+```
+
+### 12.4. Comunicación con el servicio
+
+La comunicación es **HTTP con JSON** (REST). El servicio expone tres rutas:
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/health` | Estado del servicio, versión y métricas del modelo. |
+| `POST` | `/predict` | Historial de un usuario → análisis de vulnerabilidad. |
+| `POST` | `/sugerir-curso` | Historiales de un grupo → análisis grupal y borrador de curso. |
+| `POST` | `/sugerir-mision` | Historiales de un grupo y títulos de las misiones existentes → análisis grupal y borrador de misión. |
+
+**Información que recibe** (`POST /predict`): el historial del usuario en orden cronológico. Cada interacción incluye:
+
+| Campo | Valores |
+|---|---|
+| `tipo` | `simulacion` o `quiz` |
+| `vector` | `Phishing`, `Smishing`, `Vishing`, `Ing. Social` |
+| `dificultad` | `Básico`, `Intermedio`, `Avanzado` |
+| `resultado` | Simulación: `caer`, `ignorar`, `tiempo`, `reportar`. Quiz: `correcta`, `incorrecta` |
+| `tiempo_respuesta`, `tiempo_limite` | Segundos (solo simulaciones) |
+
+Ejemplo de solicitud:
+
+```json
+{
+  "id_usuario": 7,
+  "interacciones": [
+    {"tipo": "simulacion", "vector": "Phishing", "dificultad": "Básico", "resultado": "reportar", "tiempo_respuesta": 50, "tiempo_limite": 150},
+    {"tipo": "simulacion", "vector": "Vishing", "dificultad": "Intermedio", "resultado": "caer", "tiempo_respuesta": 12, "tiempo_limite": 140},
+    {"tipo": "quiz", "vector": "Phishing", "dificultad": "Básico", "resultado": "correcta"},
+    {"tipo": "simulacion", "vector": "Vishing", "dificultad": "Intermedio", "resultado": "caer", "tiempo_respuesta": 20, "tiempo_limite": 140},
+    {"tipo": "simulacion", "vector": "Smishing", "dificultad": "Básico", "resultado": "ignorar", "tiempo_respuesta": 60, "tiempo_limite": 120},
+    {"tipo": "quiz", "vector": "Vishing", "dificultad": "Básico", "resultado": "incorrecta"}
+  ]
+}
+```
+
+**Respuesta que genera** (salida real del modelo incluido para esa solicitud):
+
+```json
+{
+  "puntaje": 47,
+  "nivel": "Medio",
+  "riesgo_por_vector": {"Phishing": 25, "Smishing": 43, "Vishing": 67, "Ing. Social": 54},
+  "vectores_prioritarios": ["Vishing", "Smishing"],
+  "vectores_sin_practica": ["Ing. Social"],
+  "interacciones_analizadas": 6,
+  "modelo": "cnn1d-v1",
+  "recomendaciones": [
+    {"icono": "fa-shield-halved", "color": "text-warning", "texto": "Vulnerabilidad moderada (47%). Refuerza vishing (llamadas), donde tu riesgo estimado es 67%."},
+    {"icono": "fa-book-open", "color": "text-primary", "texto": "Empieza por el curso de vishing (llamadas) y repite su examen antes de volver al simulador."}
+  ]
+}
+```
+
+### 12.5. Cómo utiliza la aplicación el resultado
+
+| Dónde | Uso del resultado |
+|---|---|
+| Base de datos | Cada análisis se guarda en `Analisis_IA` y el puntaje reemplaza a `Usuarios.nivel_vulnerabilidad`. |
+| Resultados de la simulación (`#/resultados`) | Tarjeta "Análisis del Servicio de IA" con el nivel, el riesgo por vector, las recomendaciones y los cursos sugeridos; el registro de telemetría incluye la línea `[SERVICIO DE IA]`. |
+| Examen de un curso (`#/aprendizaje`) | Tras calificar, muestra el nivel estimado y la recomendación principal. |
+| Perfil (`#/perfil`) | La gráfica por vector, el estado de seguridad y las recomendaciones provienen del análisis de IA, junto con los cursos sugeridos. |
+| Gestión (`#/gestion`) | Botón **Sugerir Curso con IA** (pestaña de cursos) y **Sugerir Misión con IA** (pestaña de simuladores): abren el formulario correspondiente precargado con el borrador para que el administrador lo apruebe. La tabla de usuarios muestra la vulnerabilidad estimada por la red. |
+
+### 12.5.1. Borradores de misión para el simulador
+
+El botón **Sugerir Misión con IA** usa el mismo análisis grupal que la sugerencia de cursos, con tres decisiones:
+
+| Decisión | Cómo se toma |
+|---|---|
+| Vector de ataque | El de mayor riesgo promedio estimado por la red en el grupo. |
+| Dificultad | Riesgo de 60 o más → Básico (escenario evidente); de 40 a 59 → Intermedio; menos de 40 → Avanzado (escenario sofisticado). |
+| Tiempo límite | Si al menos la mitad de las caídas registradas del grupo ocurrieron respondiendo en menos del 30 % del tiempo disponible, se reduce en 30 segundos (mínimo 60) para entrenar bajo presión. |
+
+El escenario sale de `ia-service/app/plantillas_misiones.py`, con 12 escenarios (uno por vector y dificultad) escritos con el mismo formato que las cuatro misiones de prueba: remitente falso, asunto, mensaje, acción trampa, destino malicioso y tres pistas forenses. El backend envía los títulos de las misiones activas y el servicio no repite un escenario ya publicado: si el del nivel recomendado existe, propone el del nivel más cercano y lo explica en el borrador. La justificación del análisis queda guardada en `Misiones.prompt_generacion` y la misión publicada con `origen = 'Servicio IA'`. Las misiones sugeridas funcionan en las cinco dinámicas del simulador.
+
+### 12.6. Requisitos para ejecutar la funcionalidad
+
+- Python 3.10 a 3.13 y las dependencias de `ia-service/requirements.txt` (TensorFlow, FastAPI, Uvicorn, NumPy).
+- El servicio de IA en ejecución (sección 7.4) antes de usar la aplicación.
+- La variable `IA_SERVICE_URL` en `backend/.env` si el servicio no corre en `http://localhost:8000`.
+- Node.js 18 o superior en el backend (usa `fetch` nativo; no se añadieron dependencias de npm).
+
+### 12.7. Datos de entrenamiento y desempeño del modelo
+
+La plataforma aún no cuenta con suficientes usuarios reales para entrenar un modelo, por lo que la red se entrenó con **datos sintéticos** generados por `ia-service/entrenamiento/generar_dataset.py`. El generador simula 50.000 perfiles de usuario (40.000 de entrenamiento, 5.000 de validación y 5.000 de prueba). Cada perfil tiene una vulnerabilidad oculta por vector, a partir de la cual se simula su historial con estos supuestos:
+
+- A mayor vulnerabilidad en un vector, mayor probabilidad de caer o fallar.
+- Los escenarios más difíciles y las respuestas con mucha prisa aumentan la probabilidad de fallo.
+- Cada práctica reduce un poco la vulnerabilidad, por lo que las interacciones recientes pesan más.
+
+La red aprende a recuperar la vulnerabilidad oculta observando solo el historial. Resultados sobre los 5.000 perfiles de prueba (`ia-service/modelos/metricas.json`), comparados con una regla simple de referencia (tasa de fallos por vector):
+
+| Métrica | Red convolucional | Regla de referencia |
+|---|---|---|
+| Error medio por vector (puntos sobre 100) | 15,9 | 22,6 |
+| Error medio del puntaje global (puntos sobre 100) | 10,0 | 13,0 |
+| Exactitud del nivel (bajo / medio / alto) | 66,6 % | 60,0 % |
+
+Los errores graves (clasificar como bajo a un usuario de nivel alto, o al revés) ocurren en el 1,5 % de los casos.
+
+**Limitaciones.** Estas métricas describen el desempeño frente al simulador, no frente a personas reales: el modelo es tan válido como los supuestos anteriores. Con pocas interacciones la estimación es poco precisa, y en los vectores que el usuario no ha practicado la red solo puede suponer un valor (la aplicación lo indica como "sin práctica aún"). El resultado tiene fines formativos y no debe usarse para evaluar o sancionar a una persona.
+
+Para reentrenar el modelo:
+
+```bash
+cd ia-service
+python -m entrenamiento.entrenar
+```
+
+### 12.8. Evidencia de funcionamiento
+
+**Pruebas automáticas del servicio** (11 pruebas: matriz de entrada, estado, usuario vulnerable frente a usuario seguro, detección del vector débil, validaciones, borrador de curso y borrador de misión):
+
+```bash
+cd ia-service
+python -m pytest -q
+```
+
+```text
+........                                                                 [100%]
+11 passed
+```
+
+**Pruebas de integración realizadas** (aplicación → backend → servicio de IA → base de datos → interfaz):
+
+| ID | Prueba | Resultado esperado | Estado |
+|---|---|---|---|
+| IA-01 | `GET /api/ia/estado` con el servicio encendido | `disponible: true`, modelo `cnn1d-v1` y métricas | Aprobada |
+| IA-02 | Usuario cae en 6 simulaciones seguidas | La respuesta de `/evaluar` incluye `ia.nivel = "Alto"` y se guarda en `Analisis_IA` | Aprobada |
+| IA-03 | Usuario reporta 6 simulaciones y aprueba un examen | `ia.nivel = "Bajo"` | Aprobada |
+| IA-04 | Examen de curso con respuestas por pregunta | Las respuestas se guardan en `Respuestas_Quiz` y entran al análisis | Aprobada |
+| IA-05 | Inicio de sesión posterior | `riesgoActual` corresponde al puntaje estimado por la red | Aprobada |
+| IA-06 | `GET /api/usuarios/:id/analisis-ia` sin token o de otro usuario | `401` y `403` | Aprobada |
+| IA-07 | Administrador solicita sugerencia de curso | Borrador con 2 módulos y 4 preguntas del vector más débil; al publicarlo queda con origen `Servicio IA` | Aprobada |
+| IA-08 | Sugerencia de curso con rol Estudiante | `403` | Aprobada |
+| IA-09 | Servicio de IA apagado | La simulación se guarda, `ia.disponible = false` y se aplica el motor de reglas | Aprobada |
+| IA-10 | Interfaz: resultados, perfil, examen y gestión | Se muestran la tarjeta de IA, las recomendaciones y el borrador precargado | Aprobada |
+| IA-11 | Administrador solicita sugerencia de misión para un grupo que cae respondiendo con prisa | Misión del vector más débil, dificultad según el riesgo y tiempo límite reducido; al publicarla queda con origen `Servicio IA` | Aprobada |
+| IA-12 | Segunda sugerencia de misión para el mismo grupo | No repite el escenario ya publicado; propone el del nivel más cercano | Aprobada |
+| IA-13 | Misión sugerida abierta en el simulador | Funciona en las cinco dinámicas | Aprobada |
+
+**Capturas de la versión final:** agregar en la carpeta `Evidencias/` las capturas de la tarjeta de IA en resultados, el perfil, el borrador sugerido en gestión, `http://localhost:8000/docs` y la consola del backend con el mensaje de conexión.
+
+### 12.9. Consideraciones de configuración
+
+| Variable (`backend/.env`) | Valor por defecto | Descripción |
+|---|---|---|
+| `IA_SERVICE_URL` | `http://localhost:8000` | Dirección del servicio de IA. |
+| `IA_TIMEOUT_MS` | `5000` | Tiempo máximo de espera de una respuesta. |
+| `DATABASE_SSL` | `true` | Usar `false` solo con un PostgreSQL local sin SSL. |
+
+- **Tolerancia a fallos:** si el servicio de IA no responde, la aplicación sigue funcionando. El backend conserva el cálculo por reglas y la interfaz informa que el análisis de IA no está disponible.
+- **Versión del modelo:** si al iniciar el servicio el archivo `.keras` no carga por una diferencia de versión de TensorFlow, basta con reentrenar (`python -m entrenamiento.entrenar`, entre uno y dos minutos).
+- **Sustitución de la tecnología:** el contrato JSON de `/predict` aísla al resto del sistema; el modelo puede cambiarse sin modificar el frontend ni la base de datos.
+
+---
+
+## Estado de la versión final
+
+La versión final integra el frontend, el backend, la base de datos PostgreSQL y el servicio de Inteligencia Artificial en una sola solución. La aplicación incorpora autenticación, control de acceso por roles, gestión de microcursos, simulaciones multicanal, administración de contenidos, persistencia de resultados y estimación de vulnerabilidad mediante una red neuronal convolucional consumida como servicio.
 
 ---
 
