@@ -22,6 +22,9 @@
 10. [Diagramas del proyecto](#10-diagramas-del-proyecto)
 11. [Trabajo futuro y escalabilidad](#11-trabajo-futuro-y-escalabilidad)
 12. [Integración del servicio de Inteligencia Artificial](#12-integración-del-servicio-de-inteligencia-artificial)
+13. [Gestión de pruebas en Qase](#13-gestión-de-pruebas-en-qase)
+
+> **Reporte de pruebas de la versión final:** [44 de 44 casos aprobados en Qase](https://app.qase.io/public/report/a924a632d82adf02fee02462b88000544d82504e)
 
 ---
 
@@ -804,9 +807,30 @@ python -m pytest -q
 | `IA_TIMEOUT_MS` | `5000` | Tiempo máximo de espera de una respuesta. |
 | `DATABASE_SSL` | `true` | Usar `false` solo con un PostgreSQL local sin SSL. |
 
-- **Tolerancia a fallos:** si el servicio de IA no responde, la aplicación sigue funcionando. El backend conserva el cálculo por reglas y la interfaz informa que el análisis de IA no está disponible.
+- **Tolerancia a fallos:** si el servicio de IA no responde, la aplicación sigue funcionando. El backend calcula el riesgo con el historial real del usuario (sección 12.5.2) y la interfaz indica que el dato no proviene de la red neuronal.
 - **Versión del modelo:** si al iniciar el servicio el archivo `.keras` no carga por una diferencia de versión de TensorFlow, basta con reentrenar (`python -m entrenamiento.entrenar`, entre uno y dos minutos).
 - **Sustitución de la tecnología:** el contrato JSON de `/predict` aísla al resto del sistema; el modelo puede cambiarse sin modificar el frontend ni la base de datos.
+
+---
+
+## 13. Gestión de pruebas en Qase
+
+Los casos de prueba de la versión final se registraron y ejecutaron en **[Qase](https://qase.io)**, una herramienta de gestión de pruebas.
+
+**Reporte público de la ejecución:** https://app.qase.io/public/report/a924a632d82adf02fee02462b88000544d82504e
+
+| Suite | Casos | Resultado |
+|---|---|---|
+| Integración Frontend - Backend - Base de datos (sección 9) | 4 | 4 aprobados |
+| Servicio de IA - Integración en la aplicación (IA-01 a IA-22, sección 12.8) | 22 | 22 aprobados |
+| Servicio de IA - Pruebas automáticas (`ia-service/tests/test_api.py`, pytest) | 18 | 18 aprobados |
+| **Total** | **44** | **44 aprobados (100 %)** |
+
+- **Proyecto en Qase:** NeuroShield (código `NS`), ejecución *"NeuroShield - Versión final con servicio de IA (2026-11-19)"*.
+- **Entorno de ejecución:** frontend en `:5500`, backend en `:3000` con PostgreSQL y servicio de IA en `:8000`, con el servicio de IA encendido y apagado.
+- **Casos importables:** `pruebas/qase/neuroshield_casos_qase.json` contiene los 44 casos con sus pasos y resultados esperados. Se importan en Qase desde *Repository → Import* con el tipo de origen *Qase.io*.
+- **Evidencia:** `Evidencias/qase_ejecucion_pruebas.jpg` (tablero de la ejecución al 100 %).
+- **Pruebas automáticas:** se ejecutan con `cd ia-service && python -m pytest tests -q` (resultado: `18 passed`).
 
 ---
 
