@@ -213,6 +213,7 @@ AR_SOFT_A2_NeuroShield/
 ├── js/
 │   ├── components/
 │   │   ├── analisisIA.js
+│   │   ├── asistenteIA.js
 │   │   ├── editorPasos.js
 │   │   ├── sidebar.js
 │   │   ├── topbar.js
@@ -662,15 +663,15 @@ Con dos caídas rápidas en vishing, la red detecta tanto el vector débil (69 %
 
 | Dónde | Uso del resultado |
 |---|---|
-| Base de datos | Cada análisis se guarda en `Analisis_IA` y el puntaje reemplaza a `Usuarios.nivel_vulnerabilidad`. |
+| Base de datos | Cada análisis se guarda en `Analisis_IA` y el puntaje reemplaza a `Usuarios.nivel_vulnerabilidad`. Si el servicio de IA no responde, el backend calcula el riesgo con el mismo historial (respaldo por reglas, ver 12.5.2) y lo guarda con `modelo = 'reglas-v1'`. |
 | Resultados de la simulación (`#/resultados`) | Tarjeta "Análisis del Servicio de IA" con el nivel, el plan de refuerzo detectado por la red, el riesgo por vector, las recomendaciones (las que decidió la red llevan la insignia "Red neuronal · confianza"), las misiones recomendadas con su dinámica y los cursos sugeridos. El registro de telemetría incluye la línea `[SERVICIO DE IA]`. |
 | Examen de un curso (`#/aprendizaje`) | Tras calificar, muestra el nivel estimado y la recomendación principal. |
-| Perfil (`#/perfil`) | La gráfica por vector, el estado de seguridad y las recomendaciones provienen del análisis de IA, junto con el plan de refuerzo, las misiones y los cursos sugeridos. Un botón de misión abre el simulador directamente en la dinámica recomendada. |
-| Gestión (`#/gestion`) | Botón **Sugerir Curso con IA** (pestaña de cursos) y **Sugerir Misión con IA** (pestaña de simuladores): abren el formulario correspondiente precargado con el borrador para que el administrador lo apruebe. La tabla de usuarios muestra la vulnerabilidad estimada por la red. |
+| Perfil (`#/perfil`) | La gráfica por vector, el estado de seguridad y las recomendaciones provienen del último análisis guardado, junto con el plan de refuerzo, las misiones y los cursos sugeridos. Debajo de la gráfica se indica la fuente del dato (red neuronal, cálculo por reglas o diagnóstico inicial). Un vector sin práctica aparece como "sin datos" y un usuario sin actividad ve un estado vacío en lugar de valores de ejemplo. Un botón de misión abre el simulador directamente en la dinámica recomendada. |
+| Gestión (`#/gestion`) | Botones **Generar curso con IA** (pestaña de cursos) y **Generar misión con IA** (pestaña de simuladores): abren un asistente con preguntas cortas (ver 12.5.3) y luego el editor por pasos precargado con el borrador para que el administrador lo apruebe. La tabla de usuarios muestra la vulnerabilidad estimada por la red. |
 
 ### 12.5.1. Borradores de misión para el simulador
 
-El botón **Sugerir Misión con IA** usa el mismo análisis grupal que la sugerencia de cursos, con tres decisiones:
+El botón **Generar misión con IA** usa el mismo análisis grupal que la sugerencia de cursos, con tres decisiones:
 
 | Decisión | Cómo se toma |
 |---|---|
@@ -679,6 +680,32 @@ El botón **Sugerir Misión con IA** usa el mismo análisis grupal que la sugere
 | Tiempo límite | Si al menos la mitad de las caídas registradas del grupo ocurrieron respondiendo en menos del 30 % del tiempo disponible, se reduce en 30 segundos (mínimo 60) para entrenar bajo presión. |
 
 El escenario sale de `ia-service/app/plantillas_misiones.py`, con 12 escenarios (uno por vector y dificultad) escritos con el mismo formato que las cuatro misiones de prueba: remitente falso, asunto, mensaje, acción trampa, destino malicioso y tres pistas forenses. El backend envía los títulos de las misiones activas y el servicio no repite un escenario ya publicado: si el del nivel recomendado existe, propone el del nivel más cercano y lo explica en el borrador. La justificación del análisis queda guardada en `Misiones.prompt_generacion` y la misión publicada con `origen = 'Servicio IA'`. Las misiones sugeridas funcionan en las cinco dinámicas del simulador.
+
+### 12.5.2. Respaldo cuando el servicio de IA no está disponible
+
+Si el servicio de IA no responde, el backend no deja el perfil con valores fijos: calcula el riesgo por vector con el historial real del usuario (`backend/services/analisisIA.js`, función `estimacionPorReglas`).
+
+- Peso de cada interacción: caer o responder mal = 1; ignorar o agotar el tiempo = 0,5; reportar o responder bien = 0.
+- Riesgo del vector = (suma de pesos + 0,5) / (interacciones + 1) × 100. El suavizado evita que un único intento dé 0 % o 100 %.
+- Un vector sin práctica queda en `null` ("sin datos") y no entra en el promedio.
+- El resultado se guarda en `Analisis_IA` con `modelo = 'reglas-v1'` y la respuesta lleva `fuente: 'reglas'`. El perfil, la tarjeta de resultados, la terminal del simulador ("[MOTOR DE REGLAS]") y el libro de calificaciones ("por reglas") lo indican.
+
+Cuando el servicio vuelve a estar disponible, el siguiente análisis lo hace de nuevo la red neuronal.
+
+### 12.5.3. Asistente del administrador antes de generar
+
+Antes de generar un curso o una misión, el administrador responde unas preguntas. Cada una llega preseleccionada con la recomendación de la red para el grupo elegido, así que basta con pulsar **Generar borrador** si está de acuerdo.
+
+| Pregunta | Curso | Misión | Qué recomienda la IA |
+|---|---|---|---|
+| Grupo | Sí | Sí | — (al cambiarlo se vuelve a analizar) |
+| Vector a reforzar | Sí | Sí | El de mayor riesgo promedio; cada opción muestra su riesgo |
+| Nivel o dificultad | Sí | Sí | Automático según el riesgo del vector elegido |
+| Preguntas del examen (3 a 6) | Sí | — | 4 |
+| Módulo de refuerzo posterior al examen | Sí | — | Incluirlo |
+| Presión de tiempo (automática, normal, alta) | — | Sí | Automática: reduce 30 s si el grupo cae por responder con prisa |
+
+Las respuestas viajan en `POST /api/admin/ia/sugerir-curso` (`nivel`, `num_preguntas`, `incluir_refuerzo`) y `POST /api/admin/ia/sugerir-mision` (`dificultad`, `presion`); el backend descarta valores no válidos y el servicio los valida otra vez (FastAPI responde `422` fuera de rango). Si el administrador elige algo distinto a lo recomendado, el recuadro "¿Por qué la IA propone...?" del editor y el campo `prompt_generacion` lo registran ("Elegiste el nivel Intermedio; la IA recomendaba Básico"). El asistente está en `js/components/asistenteIA.js`.
 
 ### 12.6. Requisitos para ejecutar la funcionalidad
 
@@ -752,7 +779,7 @@ python -m pytest -q
 | IA-06 | `GET /api/usuarios/:id/analisis-ia` sin token o de otro usuario | `401` y `403` | Aprobada |
 | IA-07 | Administrador solicita sugerencia de curso | Borrador con 2 módulos y 4 preguntas del vector más débil; al publicarlo queda con origen `Servicio IA` | Aprobada |
 | IA-08 | Sugerencia de curso con rol Estudiante | `403` | Aprobada |
-| IA-09 | Servicio de IA apagado | La simulación se guarda, `ia.disponible = false` y se aplica el motor de reglas | Aprobada |
+| IA-09 | Servicio de IA apagado | La simulación se guarda y el backend calcula el riesgo con el historial (`fuente: 'reglas'`, `modelo = 'reglas-v1'`); el perfil muestra esos valores y su fuente | Aprobada |
 | IA-10 | Interfaz: resultados, perfil, examen y gestión | Se muestran la tarjeta de IA, las recomendaciones y el borrador precargado | Aprobada |
 | IA-11 | Administrador solicita sugerencia de misión para un grupo que cae respondiendo con prisa | Misión del vector más débil, dificultad según el riesgo y tiempo límite reducido; al publicarla queda con origen `Servicio IA` | Aprobada |
 | IA-12 | Segunda sugerencia de misión para el mismo grupo | No repite el escenario ya publicado; propone el del nivel más cercano | Aprobada |
@@ -761,6 +788,11 @@ python -m pytest -q
 | IA-15 | Usuario que no cae pero solo ignora | Refuerzo: pasar de ignorar a reportar; misión en Escudo de Respuesta | Aprobada |
 | IA-16 | Usuario que reporta todo | Refuerzo: subir de dificultad; misión Avanzado | Aprobada |
 | IA-17 | Botón de misión recomendada | Abre el simulador en esa misión y en la dinámica sugerida | Aprobada |
+| IA-18 | Usuario nuevo sin actividad abre su perfil | Estado vacío "Sin datos aún", sin valores de ejemplo | Aprobada |
+| IA-19 | Asistente de curso: vector Smishing, nivel Intermedio, 5 preguntas | Borrador de Smishing, nivel Intermedio, 5 preguntas; el recuadro indica lo que eligió el administrador | Aprobada |
+| IA-20 | Asistente de misión con presión alta | Tiempo límite 30 s menor al de la plantilla | Aprobada |
+| IA-21 | Asistente con el servicio de IA apagado | Mensaje "El servicio de IA no está disponible" y botón Generar deshabilitado | Aprobada |
+| IA-22 | `num_preguntas = 10` directo al servicio | `422` | Aprobada |
 
 **Capturas de la versión final:** agregar en la carpeta `Evidencias/` las capturas de la tarjeta de IA en resultados, el perfil, el borrador sugerido en gestión, `http://localhost:8000/docs` y la consola del backend con el mensaje de conexión.
 
