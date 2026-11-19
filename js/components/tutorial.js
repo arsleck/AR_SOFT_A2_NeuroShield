@@ -97,18 +97,28 @@ const TutorialComponent = {
         const riesgo = g.riesgo_promedio_por_vector || {};
         const color = v => v >= 60 ? '#ef4444' : v >= 40 ? '#f59e0b' : '#10b981';
         const niveles = g.usuarios_por_nivel || {};
-        const nivel = tipo === 'mision' ? (b.dificultad_recomendada || b.dificultad) : b.nivel;
-        const explicacionNivel = nivel === 'Básico'
+        // Nivel que recomendó la red y nivel que pidió el administrador en el asistente
+        const nivelIA = tipo === 'mision' ? (b.dificultad_recomendada || b.dificultad) : (b.nivel_recomendado || b.nivel);
+        const nivelPedido = tipo === 'mision' ? (b.dificultad_objetivo || nivelIA) : b.nivel;
+        const vectorIA = g.vector_prioritario || vector;
+        const explicacionNivel = nivelIA === 'Básico'
             ? 'el riesgo es alto, así que conviene empezar por lo esencial'
-            : nivel === 'Intermedio' ? 'el riesgo es moderado' : 'el riesgo ya es bajo, así que conviene un reto mayor';
+            : nivelIA === 'Intermedio' ? 'el riesgo es moderado' : 'el riesgo ya es bajo, así que conviene un reto mayor';
         const puntos = [
             `Analizó <strong>${g.usuarios_analizados} estudiante(s)</strong> con historial: ${niveles.Alto || 0} en riesgo alto, ${niveles.Medio || 0} medio y ${niveles.Bajo || 0} bajo.`,
-            `El vector con más riesgo es <strong>${vector}</strong> (${riesgo[vector] ?? '—'} % en promedio), por eso ${tipo === 'mision' ? 'la misión' : 'el curso'} se enfoca ahí.`,
-            `Propone nivel <strong>${nivel}</strong> porque ${explicacionNivel}.`
+            vector === vectorIA
+                ? `El vector con más riesgo es <strong>${vector}</strong> (${riesgo[vector] ?? '—'} % en promedio), por eso ${tipo === 'mision' ? 'la misión' : 'el curso'} se enfoca ahí.`
+                : `Elegiste reforzar <strong>${vector}</strong> (${riesgo[vector] ?? '—'} % de riesgo). El vector con más riesgo del grupo es ${vectorIA} (${riesgo[vectorIA] ?? '—'} %).`,
+            nivelPedido === nivelIA
+                ? `Nivel <strong>${nivelIA}</strong>: ${explicacionNivel}.`
+                : `Elegiste el nivel <strong>${nivelPedido}</strong>; para este riesgo la IA recomendaba ${nivelIA}.`
         ];
+        if (tipo !== 'mision' && Array.isArray(b.quizzes)) {
+            puntos.push(`Examen de ${b.quizzes.length} pregunta(s)${(b.materiales || []).some(m => m.es_post_quiz) ? ' con módulo de refuerzo posterior' : ', sin módulo de refuerzo'}.`);
+        }
         if (tipo === 'mision') {
-            if (b.dificultad && b.dificultad_recomendada && b.dificultad !== b.dificultad_recomendada) {
-                puntos.push(`Ya existe una misión ${b.dificultad_recomendada} de ese vector, así que propone una de nivel ${b.dificultad}.`);
+            if (b.dificultad && b.dificultad !== nivelPedido) {
+                puntos.push(`Ya existe una misión ${nivelPedido} de ese vector, así que propone una de nivel ${b.dificultad}.`);
             }
             const t = b.patron_tiempo || {};
             if (t.caidas_con_tiempo > 0) {
