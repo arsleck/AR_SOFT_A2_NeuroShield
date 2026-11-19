@@ -1,0 +1,1298 @@
+{
+ "suites": [
+  {
+   "id": 1,
+   "title": "Integración Frontend - Backend - Base de datos",
+   "description": null,
+   "preconditions": null,
+   "suites": [],
+   "cases": [
+    {
+     "id": 1,
+     "title": "Prueba 1 - Registro de usuario y creación de curso",
+     "description": "POST del frontend al backend y almacenamiento en PostgreSQL.",
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon).",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Registrar un usuario desde #/registro",
+       "expected_result": "El backend responde 201 Created y el usuario queda en la tabla Usuarios",
+       "data": null,
+       "steps": []
+      },
+      {
+       "position": 2,
+       "action": "Como administrador, crear un curso con módulos y quiz desde #/gestion",
+       "expected_result": "El curso, sus materiales y preguntas quedan guardados",
+       "data": null,
+       "steps": []
+      },
+      {
+       "position": 3,
+       "action": "Recargar la aplicación",
+       "expected_result": "Los registros siguen disponibles",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 2,
+     "title": "Prueba 2 - Consulta de catálogo, misiones y panel administrativo",
+     "description": "Solicitudes GET que renderizan datos de la base.",
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon).",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Abrir #/aprendizaje, #/misiones y #/gestion",
+       "expected_result": "Se muestran cursos, misiones, usuarios y grupos leídos de Neon",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 3,
+     "title": "Prueba 3 - Datos inválidos y acceso no autorizado",
+     "description": "Validaciones de frontend y backend.",
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon).",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Registrar un nombre con números, un correo mal formado o una contraseña de menos de 6 caracteres",
+       "expected_result": "Se rechaza con 400 Bad Request y mensaje de error",
+       "data": null,
+       "steps": []
+      },
+      {
+       "position": 2,
+       "action": "Entrar a #/gestion con rol Estudiante",
+       "expected_result": "Acceso denegado (403) sin operaciones no autorizadas",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 4,
+     "title": "Prueba 4 - Error de conexión con el backend",
+     "description": "Manejo de fallos de red.",
+     "preconditions": "Backend detenido.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Intentar iniciar sesión o actualizar el perfil",
+       "expected_result": "Mensaje 'Error de conexión. Verifica que el servidor backend esté encendido' y la interfaz sigue estable",
+       "data": null,
+       "steps": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "title": "Servicio de IA - Integración en la aplicación",
+   "description": null,
+   "preconditions": null,
+   "suites": [],
+   "cases": [
+    {
+     "id": 5,
+     "title": "IA-01 - Estado del servicio de IA",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "GET /api/ia/estado",
+       "expected_result": "disponible: true, modelo cnn1d-v2 y métricas del modelo",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 6,
+     "title": "IA-02 - Usuario que cae en 6 simulaciones seguidas",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Registrar 6 simulaciones con decisión 'caer'",
+       "expected_result": "La respuesta de /evaluar incluye ia.nivel = Alto y se guarda en Analisis_IA",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 7,
+     "title": "IA-03 - Usuario que reporta y aprueba un examen",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Registrar 6 simulaciones reportadas y aprobar un examen",
+       "expected_result": "ia.nivel = Bajo",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 8,
+     "title": "IA-04 - Respuestas por pregunta del examen",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Presentar el examen de un curso",
+       "expected_result": "Las respuestas se guardan en Respuestas_Quiz y entran al análisis",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 9,
+     "title": "IA-05 - Riesgo al iniciar sesión",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Cerrar sesión y volver a entrar",
+       "expected_result": "riesgoActual corresponde al puntaje estimado por la red",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 10,
+     "title": "IA-06 - Seguridad del análisis de IA",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "GET /api/usuarios/:id/analisis-ia sin token",
+       "expected_result": "401",
+       "data": null,
+       "steps": []
+      },
+      {
+       "position": 2,
+       "action": "Pedir el análisis de otro usuario",
+       "expected_result": "403",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 11,
+     "title": "IA-07 - Sugerencia de curso para el administrador",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Generar curso con IA y publicarlo",
+       "expected_result": "Borrador con módulos y examen del vector más débil; queda con origen 'Servicio IA'",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 12,
+     "title": "IA-08 - Sugerencia de curso con rol Estudiante",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "POST /api/admin/ia/sugerir-curso con token de estudiante",
+       "expected_result": "403",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 13,
+     "title": "IA-09 - Servicio de IA apagado (respaldo por reglas)",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA detenido.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Registrar una simulación",
+       "expected_result": "Se guarda; el backend calcula el riesgo con el historial (fuente 'reglas', modelo 'reglas-v1')",
+       "data": null,
+       "steps": []
+      },
+      {
+       "position": 2,
+       "action": "Abrir #/perfil",
+       "expected_result": "La gráfica muestra esos valores y la nota de la fuente",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 14,
+     "title": "IA-10 - Interfaz con resultados de IA",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Revisar #/resultados, #/perfil, el examen y #/gestion",
+       "expected_result": "Se muestran la tarjeta de IA, recomendaciones y el borrador precargado",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 15,
+     "title": "IA-11 - Sugerencia de misión para grupo que cae con prisa",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Generar misión con IA para el grupo",
+       "expected_result": "Vector más débil, dificultad según riesgo y tiempo límite reducido; origen 'Servicio IA'",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 16,
+     "title": "IA-12 - La sugerencia de misión no repite escenarios",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Pedir una segunda misión para el mismo grupo",
+       "expected_result": "Propone el escenario del nivel más cercano sin repetir el publicado",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 17,
+     "title": "IA-13 - Misión sugerida en las cinco dinámicas",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Abrir la misión sugerida en el simulador",
+       "expected_result": "Funciona en las cinco dinámicas",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 18,
+     "title": "IA-14 - Usuario que cae rápido",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Simular caídas con poco tiempo de respuesta",
+       "expected_result": "Refuerzos: entrenar bajo presión y refuerzo teórico; misión en Reacción Táctica",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 19,
+     "title": "IA-15 - Usuario que solo ignora",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Simular decisiones 'ignorar'",
+       "expected_result": "Refuerzo: pasar de ignorar a reportar; misión en Escudo de Respuesta",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 20,
+     "title": "IA-16 - Usuario que reporta todo",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Simular decisiones 'reportar'",
+       "expected_result": "Refuerzo: subir de dificultad; misión Avanzado",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 21,
+     "title": "IA-17 - Botón de misión recomendada",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Pulsar la misión recomendada en el perfil",
+       "expected_result": "Abre el simulador en esa misión y en la dinámica sugerida",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 22,
+     "title": "IA-18 - Perfil de usuario sin actividad",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Registrar un usuario nuevo y abrir #/perfil",
+       "expected_result": "Estado vacío 'Sin datos aún', sin valores de ejemplo",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 23,
+     "title": "IA-19 - Asistente de curso con respuestas del administrador",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Generar curso con IA eligiendo Smishing, Intermedio y 5 preguntas",
+       "expected_result": "Borrador de Smishing, nivel Intermedio, 5 preguntas; el recuadro indica lo elegido",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 24,
+     "title": "IA-20 - Asistente de misión con presión alta",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Generar misión con IA eligiendo presión Alta",
+       "expected_result": "Tiempo límite 30 s menor al de la plantilla",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 25,
+     "title": "IA-21 - Asistente con el servicio de IA apagado",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA detenido.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Abrir el asistente de curso",
+       "expected_result": "Mensaje 'El servicio de IA no está disponible' y botón Generar deshabilitado",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 26,
+     "title": "IA-22 - Validación del número de preguntas",
+     "description": null,
+     "preconditions": "Frontend en http://localhost:5500, backend en http://localhost:3000 conectado a PostgreSQL (Neon). Servicio de IA (FastAPI) en http://localhost:8000.",
+     "postconditions": null,
+     "priority": "high",
+     "severity": "major",
+     "type": "functional",
+     "behavior": "positive",
+     "automation": "is-not-automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "e2e",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "POST /sugerir-curso al servicio con num_preguntas = 10",
+       "expected_result": "422",
+       "data": null,
+       "steps": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "title": "Servicio de IA - Pruebas automáticas (pytest)",
+   "description": null,
+   "preconditions": null,
+   "suites": [],
+   "cases": [
+    {
+     "id": 27,
+     "title": "test_matriz_de_entrada",
+     "description": "ia-service/tests/test_api.py::test_matriz_de_entrada",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_matriz_de_entrada",
+       "expected_result": "La matriz de entrada de la red tiene 20 pasos x 9 características",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 28,
+     "title": "test_health",
+     "description": "ia-service/tests/test_api.py::test_health",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_health",
+       "expected_result": "GET /health responde OK con el modelo y sus métricas",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 29,
+     "title": "test_usuario_vulnerable_vs_usuario_seguro",
+     "description": "ia-service/tests/test_api.py::test_usuario_vulnerable_vs_usuario_seguro",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_usuario_vulnerable_vs_usuario_seguro",
+       "expected_result": "Un usuario que cae obtiene más riesgo que uno que reporta",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 30,
+     "title": "test_detecta_el_vector_debil",
+     "description": "ia-service/tests/test_api.py::test_detecta_el_vector_debil",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_detecta_el_vector_debil",
+       "expected_result": "La red identifica el vector donde el usuario falla",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 31,
+     "title": "test_predict_sin_interacciones",
+     "description": "ia-service/tests/test_api.py::test_predict_sin_interacciones",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_predict_sin_interacciones",
+       "expected_result": "/predict sin interacciones responde un error controlado",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 32,
+     "title": "test_sugerir_curso",
+     "description": "ia-service/tests/test_api.py::test_sugerir_curso",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_sugerir_curso",
+       "expected_result": "/sugerir-curso devuelve análisis grupal y borrador completo",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 33,
+     "title": "test_sugerir_curso_vector_forzado",
+     "description": "ia-service/tests/test_api.py::test_sugerir_curso_vector_forzado",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_sugerir_curso_vector_forzado",
+       "expected_result": "Se respeta el vector pedido",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 34,
+     "title": "test_no_prioriza_vectores_sin_historial",
+     "description": "ia-service/tests/test_api.py::test_no_prioriza_vectores_sin_historial",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_no_prioriza_vectores_sin_historial",
+       "expected_result": "No se priorizan vectores sin práctica",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 35,
+     "title": "test_plantillas_de_mision_completas",
+     "description": "ia-service/tests/test_api.py::test_plantillas_de_mision_completas",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_plantillas_de_mision_completas",
+       "expected_result": "Las 12 plantillas de misión tienen todos los campos",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 36,
+     "title": "test_sugerir_mision_grupo_vulnerable",
+     "description": "ia-service/tests/test_api.py::test_sugerir_mision_grupo_vulnerable",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_sugerir_mision_grupo_vulnerable",
+       "expected_result": "Misión Básico y tiempo reducido para un grupo que cae con prisa",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 37,
+     "title": "test_sugerir_mision_no_repite_escenarios",
+     "description": "ia-service/tests/test_api.py::test_sugerir_mision_no_repite_escenarios",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_sugerir_mision_no_repite_escenarios",
+       "expected_result": "No repite misiones ya publicadas",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 38,
+     "title": "test_perfil_refuerzo_en_la_respuesta",
+     "description": "ia-service/tests/test_api.py::test_perfil_refuerzo_en_la_respuesta",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_perfil_refuerzo_en_la_respuesta",
+       "expected_result": "La respuesta incluye el perfil de refuerzo",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 39,
+     "title": "test_red_detecta_impulsividad_y_falta_de_teoria",
+     "description": "ia-service/tests/test_api.py::test_red_detecta_impulsividad_y_falta_de_teoria",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_red_detecta_impulsividad_y_falta_de_teoria",
+       "expected_result": "Refuerzo de presión y teoría para quien cae rápido",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 40,
+     "title": "test_red_detecta_que_no_reporta",
+     "description": "ia-service/tests/test_api.py::test_red_detecta_que_no_reporta",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_red_detecta_que_no_reporta",
+       "expected_result": "Refuerzo de reportar para quien ignora",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 41,
+     "title": "test_red_sugiere_avanzar_a_quien_domina",
+     "description": "ia-service/tests/test_api.py::test_red_sugiere_avanzar_a_quien_domina",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_red_sugiere_avanzar_a_quien_domina",
+       "expected_result": "Refuerzo de avanzar para quien reporta todo",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 42,
+     "title": "test_asistente_curso_respeta_las_respuestas",
+     "description": "ia-service/tests/test_api.py::test_asistente_curso_respeta_las_respuestas",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_asistente_curso_respeta_las_respuestas",
+       "expected_result": "El borrador respeta vector, nivel, preguntas y refuerzo elegidos",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 43,
+     "title": "test_asistente_curso_valida_el_numero_de_preguntas",
+     "description": "ia-service/tests/test_api.py::test_asistente_curso_valida_el_numero_de_preguntas",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_asistente_curso_valida_el_numero_de_preguntas",
+       "expected_result": "num_preguntas fuera de rango responde 422",
+       "data": null,
+       "steps": []
+      }
+     ]
+    },
+    {
+     "id": 44,
+     "title": "test_asistente_mision_dificultad_y_presion",
+     "description": "ia-service/tests/test_api.py::test_asistente_mision_dificultad_y_presion",
+     "preconditions": "Python 3.10-3.13 con las dependencias de ia-service/requirements.txt.",
+     "postconditions": null,
+     "priority": "medium",
+     "severity": "major",
+     "type": "other",
+     "behavior": "positive",
+     "automation": "automated",
+     "status": "actual",
+     "is_flaky": "no",
+     "layer": "api",
+     "milestone": null,
+     "custom_fields": [],
+     "tags": [],
+     "params": [],
+     "steps": [
+      {
+       "position": 1,
+       "action": "Ejecutar: pytest tests/test_api.py::test_asistente_mision_dificultad_y_presion",
+       "expected_result": "Presión alta reduce 30 s y se respeta la dificultad",
+       "data": null,
+       "steps": []
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
