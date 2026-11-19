@@ -36,6 +36,10 @@ async function asegurarEsquemaIA(pool) {
         modelo VARCHAR(40),
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Segunda salida de la red: perfil de refuerzo (probabilidades) y refuerzos activados
+    ALTER TABLE Analisis_IA ADD COLUMN IF NOT EXISTS perfil_refuerzo JSONB DEFAULT '{}'::jsonb;
+    ALTER TABLE Analisis_IA ADD COLUMN IF NOT EXISTS refuerzos JSONB DEFAULT '[]'::jsonb;
   `);
 }
 
@@ -98,6 +102,64 @@ async function cursosRecomendados(pool, idUsuario, vectores) {
   return rows;
 }
 
+// Cada refuerzo que decide la red se practica mejor con una dinámica del simulador.
+const PLAN_POR_REFUERZO = {
+  teoria: { modo: 'redflags', dificultad: 'Básico', motivo: 'Identifica las señales de alerta del engaño' },
+  presion: { modo: 'reaccion', dificultad: null, motivo: 'Decide con calma aunque el tiempo sea corto' },
+  reportar: { modo: 'dialogo', dificultad: null, motivo: 'Practica reportar en lugar de solo ignorar' },
+  avanzar: { modo: 'urlinspector', dificultad: 'Avanzado', motivo: 'Analiza un escenario más sofisticado' }
+};
+const PLAN_POR_DEFECTO = { modo: 'reaccion', dificultad: null, motivo: 'Practica tu vector más débil' };
+
+// Misiones del simulador recomendadas según la salida de la red: riesgo por vector
+// (salida 1) y tipo de refuerzo (salida 2).
+//   - Subir de dificultad: primero la dificultad Avanzado, en cualquier vector.
+//   - Resto: primero los vectores prioritarios y las misiones que aún no ha superado.
+async function misionesRecomendadas(pool, idUsuario, analisis) {
+  const riesgo = analisis.riesgo_por_vector || {};
+  const vectores = [...VECTORES].sort((a, b) => (riesgo[b] ?? 0) - (riesgo[a] ?? 0));
+  const prioritarios = Array.isArray(analisis.vectores_prioritarios) && analisis.vectores_prioritarios.length > 0
+    ? analisis.vectores_prioritarios : vectores.slice(0, 1);
+  const principal = Array.isArray(analisis.refuerzos) && analisis.refuerzos.length > 0
+    ? analisis.refuerzos[0].tipo : null;
+  const plan = PLAN_POR_REFUERZO[principal] || PLAN_POR_DEFECTO;
+
+  const avanzar = principal === 'avanzar';
+  const orden = avanzar
+    ? `COALESCE(m.dificultad = $3, FALSE) DESC, superada ASC, array_position($2::text[], m.vector::text)`
+    : `(m.vector = ANY($4::text[])) DESC, superada ASC, COALESCE(m.dificultad = $3, FALSE) DESC,
+       array_position($2::text[], m.vector::text),
+       CASE WHEN $5 THEN m.tiempo_limite END ASC NULLS LAST`;
+  const parametros = avanzar
+    ? [idUsuario, vectores, plan.dificultad]
+    : [idUsuario, vectores, plan.dificultad, prioritarios, principal === 'presion'];
+
+  const { rows } = await pool.query(
+    `SELECT m.id_mision, m.titulo, m.vector, m.dificultad, m.tiempo_limite, superada
+     FROM (
+       SELECT m.*, EXISTS (SELECT 1 FROM Historial_Simulaciones h
+                           WHERE h.id_mision = m.id_mision AND h.id_usuario = $1
+                             AND h.decision = 'reportar') AS superada
+       FROM Misiones m
+       WHERE m.activo = TRUE
+     ) m
+     ORDER BY ${orden}, m.id_mision
+     LIMIT 2`,
+    parametros
+  );
+  return rows.map(m => ({ ...m, modo_sugerido: plan.modo, motivo: plan.motivo, refuerzo: principal }));
+}
+
+// Una falla al buscar misiones no debe impedir entregar el análisis de la red.
+async function misionesRecomendadasSeguro(pool, idUsuario, analisis) {
+  try {
+    return await misionesRecomendadas(pool, idUsuario, analisis);
+  } catch (error) {
+    console.error('No se pudieron calcular las misiones recomendadas:', error.message);
+    return [];
+  }
+}
+
 // Flujo completo: historial -> servicio de IA -> guardar -> respuesta para el frontend.
 // Devuelve { disponible: false, motivo } cuando no se pudo usar la IA.
 async function analizarUsuario(pool, idUsuario) {
@@ -114,8 +176,8 @@ async function analizarUsuario(pool, idUsuario) {
   await pool.query(
     `INSERT INTO Analisis_IA
        (id_usuario, puntaje, nivel, riesgo_por_vector, vectores_prioritarios, vectores_sin_practica,
-        recomendaciones, interacciones_analizadas, modelo)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        recomendaciones, interacciones_analizadas, modelo, perfil_refuerzo, refuerzos)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
     [
       idUsuario, analisis.puntaje, analisis.nivel,
       JSON.stringify(analisis.riesgo_por_vector),
@@ -123,7 +185,9 @@ async function analizarUsuario(pool, idUsuario) {
       JSON.stringify(analisis.vectores_sin_practica || []),
       JSON.stringify(analisis.recomendaciones || []),
       analisis.interacciones_analizadas || interacciones.length,
-      analisis.modelo || null
+      analisis.modelo || null,
+      JSON.stringify(analisis.perfil_refuerzo || {}),
+      JSON.stringify(analisis.refuerzos || [])
     ]
   );
   // La vulnerabilidad oficial del usuario pasa a ser la que estima la red.
@@ -134,7 +198,8 @@ async function analizarUsuario(pool, idUsuario) {
   return {
     disponible: true,
     ...analisis,
-    cursos_recomendados: await cursosRecomendados(pool, idUsuario, analisis.vectores_prioritarios)
+    cursos_recomendados: await cursosRecomendados(pool, idUsuario, analisis.vectores_prioritarios),
+    misiones_recomendadas: await misionesRecomendadasSeguro(pool, idUsuario, analisis)
   };
 }
 
@@ -154,10 +219,13 @@ async function ultimoAnalisis(pool, idUsuario) {
     vectores_prioritarios: a.vectores_prioritarios,
     vectores_sin_practica: a.vectores_sin_practica,
     recomendaciones: a.recomendaciones,
+    perfil_refuerzo: a.perfil_refuerzo || {},
+    refuerzos: a.refuerzos || [],
     interacciones_analizadas: a.interacciones_analizadas,
     modelo: a.modelo,
     fecha: a.fecha,
-    cursos_recomendados: await cursosRecomendados(pool, idUsuario, a.vectores_prioritarios)
+    cursos_recomendados: await cursosRecomendados(pool, idUsuario, a.vectores_prioritarios),
+    misiones_recomendadas: await misionesRecomendadasSeguro(pool, idUsuario, a)
   };
 }
 

@@ -148,5 +148,11 @@ CREATE TABLE IF NOT EXISTS Analisis_IA (
     recomendaciones JSONB DEFAULT '[]'::jsonb,
     interacciones_analizadas INTEGER DEFAULT 0,
     modelo VARCHAR(40),
+    perfil_refuerzo JSONB DEFAULT '{}'::jsonb, -- segunda salida de la red: probabilidad de cada tipo de refuerzo
+    refuerzos JSONB DEFAULT '[]'::jsonb,       -- refuerzos activados (probabilidad sobre el umbral)
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Para bases de datos creadas antes de la segunda salida de la red
+ALTER TABLE Analisis_IA ADD COLUMN IF NOT EXISTS perfil_refuerzo JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE Analisis_IA ADD COLUMN IF NOT EXISTS refuerzos JSONB DEFAULT '[]'::jsonb;
