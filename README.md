@@ -139,14 +139,22 @@ El Sandbox incorpora cinco dinámicas interactivas:
 4. **Escudo de Diálogo:** selección de una postura de respuesta basada en el protocolo Zero Trust.
 5. **Protocolo de Contención SOC:** organización secuencial de los pasos necesarios para atender un incidente.
 
+La página de simuladores sigue la organización de un LMS (como Canvas):
+
+- **Módulos plegables:** uno por vector, con sus misiones ordenadas de Básico a Avanzado. Cada misión muestra su dificultad, su tiempo, los intentos y su estado: pendiente, en progreso o superada. Una misión se considera superada cuando el usuario reporta la amenaza.
+- **Indicaciones de la IA:** el riesgo que estima la red por vector y las etiquetas "Prioridad según la IA" y "Recomendada por IA".
+- **Columna "Por hacer":** el plan de refuerzo, las misiones y los cursos que sugiere la red.
+- **Pantalla del simulador:** ruta de navegación, las cinco dinámicas como pestañas y botones "Anterior / Siguiente" para recorrer el módulo.
+
 ### 3.5. Centro de administración CRUD (`#/gestion`)
 
-El panel administrativo dispone de cuatro áreas de gestión:
+El panel administrativo sigue la vista del docente en un LMS: un menú lateral con cinco secciones y tablas con sus acciones.
 
-- **Cursos:** creación, edición y eliminación de cursos, módulos y preguntas de evaluación.
-- **Simuladores y ataques:** administración de escenarios, remitentes y pistas forenses.
-- **Usuarios:** consulta de usuarios, modificación de roles y asignación de grupos.
-- **Grupos de entrenamiento:** creación y administración de grupos.
+- **Cursos:** creación, edición y eliminación de cursos, módulos y preguntas de evaluación, y sugerencia de cursos con IA.
+- **Simuladores:** administración de escenarios, remitentes y pistas forenses, y sugerencia de misiones con IA.
+- **Personas:** consulta de usuarios, modificación de roles y asignación de grupos.
+- **Grupos:** creación y administración de grupos de entrenamiento.
+- **Calificaciones:** libro de calificaciones con el riesgo que estima la red neuronal para cada estudiante y vector (coloreado en bajo, medio o alto), el refuerzo sugerido, sus simulaciones y cursos aprobados, y el promedio. Se puede filtrar por grupo y exportar a CSV.
 
 El modelo contempla los atributos `origen` y `prompt_generacion` para mantener trazabilidad de contenidos que puedan ser generados por el sistema, un administrador o un futuro módulo de inteligencia artificial.
 
@@ -170,6 +178,7 @@ AR_SOFT_A2_NeuroShield/
 │   ├── package.json
 │   └── server.js
 ├── css/
+│   ├── canvas.css           # vistas estilo LMS: módulos, Por hacer, administración
 │   └── styles.css
 ├── database/
 │   └── neuroshield_db.sql
@@ -234,6 +243,7 @@ AR_SOFT_A2_NeuroShield/
 |---|---|
 | `index.html` | Punto de entrada de la aplicación SPA. |
 | `css/styles.css` | Hojas de estilo y sistema visual inspirado en Cisco Academy. |
+| `css/canvas.css` | Componentes de las vistas estilo LMS (módulos, "Por hacer", navegación del administrador y libro de calificaciones), con prefijo `cv-`. |
 | `js/components/` | Componentes reutilizables (`sidebar.js`, `topbar.js`, modales en `tutorial.js` y la tarjeta de resultados de IA en `analisisIA.js`). |
 | `js/controllers/app.js` | Enrutador SPA, eventos, validaciones Regex y solicitudes Fetch al backend. |
 | `js/models/data.js` | Estado del usuario, cálculos de vulnerabilidad y sincronización con la API. |
@@ -292,6 +302,8 @@ La siguiente tabla resume las rutas principales contempladas en la integración:
 | `GET` | `/api/usuarios/:id/analisis-ia` | Recupera el último análisis de IA del usuario (requiere token). | `SELECT` |
 | `POST` | `/api/admin/ia/sugerir-curso` | Genera un borrador de curso y examen a partir del desempeño de un grupo (solo administrador). | `SELECT` |
 | `POST` | `/api/admin/ia/sugerir-mision` | Genera un borrador de misión del simulador a partir del desempeño de un grupo, sin repetir escenarios existentes (solo administrador). | `SELECT` |
+| `GET` | `/api/admin/ia/libro-calificaciones` | Último análisis de la red por estudiante, con su actividad (solo administrador). | `SELECT` |
+| `GET` | `/api/usuarios/:id/historial-misiones` | Estado de cada misión del usuario: intentos, si la superó y su última decisión (requiere token). | `SELECT` |
 
 > **Nota:** las rutas se presentan como resumen funcional de la API descrita para esta fase. Para conocer el comportamiento exacto de cada endpoint, sus parámetros y validaciones, se debe consultar su implementación en `backend/server.js`.
 
