@@ -19,13 +19,8 @@ const PerfilPage = {
             estadoRiesgoClase = "status-danger";
         }
 
-        const listaRecomendaciones = (usuario.recomendacionesActuales || [])
-            .map(rec => `
-                <li class="rec-item">
-                    <i class="fa-solid ${rec.icono} ${rec.color}"></i>
-                    <span>${rec.texto}</span>
-                </li>
-            `).join('');
+        // Las recomendaciones del servicio de IA marcan cuáles decidió la red neuronal
+        const listaRecomendaciones = AnalisisIAComponent.renderListaRecomendaciones(usuario.recomendacionesActuales);
 
         return `
         <section id="perfil" class="view-section active">

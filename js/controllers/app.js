@@ -1,5 +1,5 @@
 // === EL CONTROLADOR (MVC) ===
-// Responsable del enrutamiento SPA, seguridad JWT, Diagnóstico Inicial, Perfil, Cursos, Simuladores (5 Dinámicas), Gestión Admin y conexión con Backend.
+// Responsable del enrutamiento SPA, seguridad JWT, Diagnóstico Inicial, Perfil, Cursos, Simuladores (5 Dinámicas), Gestión Admin, Servicio de IA y conexión con Backend.
 
 const AppController = {
     timerInterval: null,
@@ -679,6 +679,18 @@ const AppController = {
                 return;
             }
 
+            // Misión recomendada por la red neuronal: abre el simulador en la dinámica sugerida
+            const btnMisionIA = e.target.closest('.btn-ir-mision-ia');
+            if (btnMisionIA) {
+                const idMision = parseInt(btnMisionIA.getAttribute('data-mision-id'), 10);
+                if (AppModel.catalogoMisiones.some(m => m.id_mision === idMision)) {
+                    AppModel.misionActivaId = idMision;
+                    SimuladorPage.modoActivo = btnMisionIA.getAttribute('data-modo') || 'reaccion';
+                    window.location.hash = '#/simulador';
+                }
+                return;
+            }
+
             const btnCurso = e.target.closest('.btn-ver-curso');
             if (btnCurso) {
                 const idCurso = btnCurso.getAttribute('data-curso-id');
@@ -762,110 +774,114 @@ const AppController = {
                 }
             });
 
-        // === 2. LOGIN (#/login) ===
-        } else if (rutaActual === '#/login' || rutaActual === '') {
-            document.getElementById('login-form')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const correoInput = document.getElementById('login-correo').value.trim();
-                const passwordInput = document.getElementById('login-password').value;
-                const btnSubmit = e.target.querySelector('button');
-                
-                const errorBox = document.getElementById('login-error-box');
-                const errorText = document.getElementById('login-error-text');
-                
-                const mostrarError = (mensaje) => {
-                    errorText.innerText = mensaje;
-                    errorBox.style.display = 'block';
-                    btnSubmit.innerHTML = 'Ingresar al Sistema <i class="fa-solid fa-arrow-right ms-2"></i>';
-                    btnSubmit.disabled = false;
+        // === 2 y 3. ACCESO UNIFICADO: LOGIN (#/login) Y REGISTRO (#/registro) ===
+        } else if (rutaActual === '#/login' || rutaActual === '#/registro' || rutaActual === '') {
+            const loginForm = document.getElementById('login-form');
+            if (loginForm) {
+                loginForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    
+                    const correoInput = document.getElementById('login-correo').value.trim();
+                    const passwordInput = document.getElementById('login-password').value;
+                    const btnSubmit = e.target.querySelector('button');
+                    
+                    const errorBox = document.getElementById('login-error-box');
+                    const errorText = document.getElementById('login-error-text');
+                    
+                    const mostrarError = (mensaje) => {
+                        errorText.innerText = mensaje;
+                        errorBox.style.display = 'block';
+                        btnSubmit.innerHTML = 'Ingresar al Sistema <i class="fa-solid fa-arrow-right ms-2"></i>';
+                        btnSubmit.disabled = false;
+                    };
+
+                    errorBox.style.display = 'none';
+                    if (!regexCorreo.test(correoInput)) return mostrarError('El formato del correo es inválido.');
+
+                    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
+                    btnSubmit.disabled = true;
+
+                    try {
+                        const respuesta = await fetch('http://localhost:3000/api/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ correo: correoInput, password: passwordInput })
+                        });
+
+                        const datos = await respuesta.json();
+                        if (!respuesta.ok) return mostrarError(datos.error);
+
+                        sessionStorage.setItem('neuroshield_token', datos.token);
+                        AppModel.estadoUsuario.id = datos.usuario.id;
+                        AppModel.estadoUsuario.nombre = datos.usuario.nombre;
+                        AppModel.estadoUsuario.correo = datos.usuario.correo;
+                        AppModel.estadoUsuario.rol = datos.usuario.rol || 'Estudiante';
+                        AppModel.estadoUsuario.riesgoActual = datos.usuario.riesgoActual;
+
+                        await AppModel.sincronizarCursosDesdeBD();
+                        await AppModel.sincronizarAnalisisIADesdeBD();
+                        sessionStorage.setItem('neuroshield_usuario', JSON.stringify(AppModel.estadoUsuario));
+                        window.location.hash = '#/dashboard';
+                    } catch (error) {
+                        mostrarError('Error de conexión. Verifica que el servidor backend esté encendido.');
+                    }
                 };
+            }
 
-                errorBox.style.display = 'none';
-                if (!regexCorreo.test(correoInput)) return mostrarError('El formato del correo es inválido.');
+            const regForm = document.getElementById('registro-form');
+            if (regForm) {
+                regForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    
+                    const nombreInput = document.getElementById('reg-nombre').value.trim();
+                    const correoInput = document.getElementById('reg-correo').value.trim();
+                    const passwordInput = document.getElementById('reg-password').value;
+                    const btnSubmit = e.target.querySelector('button');
 
-                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
-                btnSubmit.disabled = true;
+                    const errorBox = document.getElementById('reg-error-box');
+                    const errorText = document.getElementById('reg-error-text');
 
-                try {
-                    const respuesta = await fetch('http://localhost:3000/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ correo: correoInput, password: passwordInput })
-                    });
+                    const mostrarError = (mensaje) => {
+                        errorText.innerText = mensaje;
+                        errorBox.style.display = 'block';
+                        btnSubmit.innerHTML = 'Registrarse <i class="fa-solid fa-arrow-right ms-2"></i>';
+                        btnSubmit.disabled = false;
+                    };
 
-                    const datos = await respuesta.json();
-                    if (!respuesta.ok) return mostrarError(datos.error);
+                    errorBox.style.display = 'none';
+                    if (!regexNombre.test(nombreInput)) return mostrarError('El nombre solo debe contener letras (mínimo 3).');
+                    if (!regexCorreo.test(correoInput)) return mostrarError('El correo ingresado no es válido.');
+                    if (passwordInput.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.');
 
-                    sessionStorage.setItem('neuroshield_token', datos.token);
-                    AppModel.estadoUsuario.id = datos.usuario.id;
-                    AppModel.estadoUsuario.nombre = datos.usuario.nombre;
-                    AppModel.estadoUsuario.correo = datos.usuario.correo;
-                    AppModel.estadoUsuario.rol = datos.usuario.rol || 'Estudiante';
-                    AppModel.estadoUsuario.riesgoActual = datos.usuario.riesgoActual;
+                    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando cuenta...';
+                    btnSubmit.disabled = true;
 
-                    await AppModel.sincronizarCursosDesdeBD();
-                    await AppModel.sincronizarAnalisisIADesdeBD();
-                    sessionStorage.setItem('neuroshield_usuario', JSON.stringify(AppModel.estadoUsuario));
-                    window.location.hash = '#/dashboard';
-                } catch (error) {
-                    mostrarError('Error de conexión. Verifica que el servidor backend esté encendido.');
-                }
-            });
+                    try {
+                        const respuesta = await fetch('http://localhost:3000/api/registro', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ nombre: nombreInput, correo: correoInput, password: passwordInput })
+                        });
 
-        // === 3. REGISTRO (#/registro) ===
-        } else if (rutaActual === '#/registro') {
-            document.getElementById('registro-form')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const nombreInput = document.getElementById('reg-nombre').value.trim();
-                const correoInput = document.getElementById('reg-correo').value.trim();
-                const passwordInput = document.getElementById('reg-password').value;
-                const btnSubmit = e.target.querySelector('button');
+                        const datos = await respuesta.json();
+                        if (!respuesta.ok) return mostrarError(datos.error);
 
-                const errorBox = document.getElementById('reg-error-box');
-                const errorText = document.getElementById('reg-error-text');
+                        sessionStorage.setItem('neuroshield_token', datos.token);
+                        AppModel.estadoUsuario.id = datos.usuario.id;
+                        AppModel.estadoUsuario.nombre = datos.usuario.nombre;
+                        AppModel.estadoUsuario.correo = datos.usuario.correo;
+                        AppModel.estadoUsuario.rol = datos.usuario.rol || 'Estudiante';
+                        AppModel.estadoUsuario.riesgoActual = datos.usuario.riesgoActual;
 
-                const mostrarError = (mensaje) => {
-                    errorText.innerText = mensaje;
-                    errorBox.style.display = 'block';
-                    btnSubmit.innerHTML = 'Registrarse <i class="fa-solid fa-arrow-right ms-2"></i>';
-                    btnSubmit.disabled = false;
+                        await AppModel.sincronizarCursosDesdeBD();
+                        await AppModel.sincronizarAnalisisIADesdeBD();
+                        sessionStorage.setItem('neuroshield_usuario', JSON.stringify(AppModel.estadoUsuario));
+                        window.location.hash = '#/dashboard';
+                    } catch (error) {
+                        mostrarError('Error de conexión con el servidor.');
+                    }
                 };
-
-                errorBox.style.display = 'none';
-                if (!regexNombre.test(nombreInput)) return mostrarError('El nombre solo debe contener letras (mínimo 3).');
-                if (!regexCorreo.test(correoInput)) return mostrarError('El correo ingresado no es válido.');
-                if (passwordInput.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.');
-
-                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando cuenta...';
-                btnSubmit.disabled = true;
-
-                try {
-                    const respuesta = await fetch('http://localhost:3000/api/registro', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nombre: nombreInput, correo: correoInput, password: passwordInput })
-                    });
-
-                    const datos = await respuesta.json();
-                    if (!respuesta.ok) return mostrarError(datos.error);
-
-                    sessionStorage.setItem('neuroshield_token', datos.token);
-                    AppModel.estadoUsuario.id = datos.usuario.id;
-                    AppModel.estadoUsuario.nombre = datos.usuario.nombre;
-                    AppModel.estadoUsuario.correo = datos.usuario.correo;
-                    AppModel.estadoUsuario.rol = datos.usuario.rol || 'Estudiante';
-                    AppModel.estadoUsuario.riesgoActual = datos.usuario.riesgoActual;
-
-                    await AppModel.sincronizarCursosDesdeBD();
-                    await AppModel.sincronizarAnalisisIADesdeBD();
-                    sessionStorage.setItem('neuroshield_usuario', JSON.stringify(AppModel.estadoUsuario));
-                    window.location.hash = '#/dashboard';
-                } catch (error) {
-                    mostrarError('Error de conexión con el servidor.');
-                }
-            });
+            }
 
         // === 4. CENTRO DE SIMULADORES EN 4 RECUADROS (#/misiones) ===
         } else if (rutaActual === '#/misiones') {
