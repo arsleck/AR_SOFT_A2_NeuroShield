@@ -174,3 +174,34 @@ def test_red_sugiere_avanzar_a_quien_domina(cliente):
         {"tipo": "quiz", "vector": v, "dificultad": "Avanzado", "resultado": "correcta"} for v in VECTORES]
     datos = cliente.post("/predict", json={"interacciones": interacciones}).json()
     assert tipos(datos) == ["avanzar"]
+
+
+def test_asistente_curso_respeta_las_respuestas(cliente):
+    grupo = [{"interacciones": historial("caer", "incorrecta", 8)}]
+    auto = cliente.post("/sugerir-curso", json={"usuarios": grupo}).json()
+    assert auto["recomendacion"]["vector"] == auto["analisis_grupal"]["vector_prioritario"]
+    assert auto["borrador"]["nivel"] == auto["borrador"]["nivel_recomendado"] == "Básico"
+
+    datos = cliente.post("/sugerir-curso", json={"usuarios": grupo, "vector": "Smishing", "nivel": "Avanzado",
+                                                 "num_preguntas": 6, "incluir_refuerzo": False}).json()
+    b = datos["borrador"]
+    assert b["categoria"] == "Smishing" and b["nivel"] == "Avanzado" and b["nivel_recomendado"] == "Básico"
+    assert len(b["quizzes"]) == 6
+    assert not any(m["es_post_quiz"] for m in b["materiales"])
+    assert "eligió el nivel Avanzado" in b["prompt_generacion"]
+
+
+def test_asistente_curso_valida_el_numero_de_preguntas(cliente):
+    respuesta = cliente.post("/sugerir-curso", json={"usuarios": [{"interacciones": historial("caer", "incorrecta", 8)}],
+                                                     "num_preguntas": 10})
+    assert respuesta.status_code == 422
+
+
+def test_asistente_mision_dificultad_y_presion(cliente):
+    grupo = [{"interacciones": historial("reportar", "correcta", 70)}]
+    normal = cliente.post("/sugerir-mision", json={"usuarios": grupo, "vector": "Vishing", "presion": "normal"}).json()["borrador"]
+    alta = cliente.post("/sugerir-mision", json={"usuarios": grupo, "vector": "Vishing", "presion": "alta"}).json()["borrador"]
+    assert alta["tiempo_limite"] == max(60, normal["tiempo_limite"] - 30)
+
+    basico = cliente.post("/sugerir-mision", json={"usuarios": grupo, "vector": "Vishing", "dificultad": "Básico"}).json()["borrador"]
+    assert basico["dificultad"] == "Básico" and basico["dificultad_recomendada"] == "Avanzado"

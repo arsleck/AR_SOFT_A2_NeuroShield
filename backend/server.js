@@ -902,9 +902,9 @@ app.get('/api/usuarios/:id/analisis-ia', verificarToken, async (req, res) => {
 
 // 3. Borrador de curso y examen sugerido por la IA para un grupo o para todos (Solo Admin)
 app.post('/api/admin/ia/sugerir-curso', verificarToken, soloAdmin, async (req, res) => {
-  const { id_grupo, vector } = req.body || {};
+  const { id_grupo, vector, ...respuestas } = req.body || {};
   try {
-    const sugerencia = await analisisIA.sugerirCursoParaGrupo(pool, parseInt(id_grupo, 10) || null, vector);
+    const sugerencia = await analisisIA.sugerirCursoParaGrupo(pool, parseInt(id_grupo, 10) || null, vector, respuestas);
     if (!sugerencia.disponible) return res.status(409).json({ error: sugerencia.motivo });
     res.json(sugerencia);
   } catch (error) {
@@ -939,9 +939,9 @@ app.get('/api/usuarios/:id/historial-misiones', verificarToken, async (req, res)
 
 // 4. Borrador de misión del simulador sugerido por la IA para un grupo o para todos (Solo Admin)
 app.post('/api/admin/ia/sugerir-mision', verificarToken, soloAdmin, async (req, res) => {
-  const { id_grupo, vector } = req.body || {};
+  const { id_grupo, vector, ...respuestas } = req.body || {};
   try {
-    const sugerencia = await analisisIA.sugerirMisionParaGrupo(pool, parseInt(id_grupo, 10) || null, vector);
+    const sugerencia = await analisisIA.sugerirMisionParaGrupo(pool, parseInt(id_grupo, 10) || null, vector, respuestas);
     if (!sugerencia.disponible) return res.status(409).json({ error: sugerencia.motivo });
     res.json(sugerencia);
   } catch (error) {

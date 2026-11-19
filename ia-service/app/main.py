@@ -20,7 +20,8 @@ from pydantic import BaseModel, Field
 from .config import MAX_PASOS, VECTORES, VERSION_MODELO
 from .predictor import Predictor
 from .recomendador import (analisis_grupal, borrador_curso, borrador_mision,
-                           recomendaciones_usuario, vectores_prioritarios)
+                           recomendacion_grupal, recomendaciones_usuario,
+                           vectores_prioritarios)
 
 estado: dict = {}
 
@@ -60,12 +61,23 @@ class UsuarioGrupo(BaseModel):
     interacciones: list[Interaccion]
 
 
+Nivel = Literal["Básico", "Intermedio", "Avanzado"]
+
+
 class SolicitudCurso(BaseModel):
     usuarios: list[UsuarioGrupo]
+    # Respuestas del asistente del administrador; si se omiten, decide la red
     vector: Optional[str] = Field(None, description="Forzar un vector; si se omite, se usa el más débil")
+    nivel: Optional[Nivel] = Field(None, description="Forzar el nivel; si se omite, se deduce del riesgo")
+    num_preguntas: int = Field(4, ge=3, le=6, description="Preguntas del examen")
+    incluir_refuerzo: bool = Field(True, description="Incluir el módulo que se desbloquea tras el examen")
 
 
-class SolicitudMision(SolicitudCurso):
+class SolicitudMision(BaseModel):
+    usuarios: list[UsuarioGrupo]
+    vector: Optional[str] = Field(None, description="Forzar un vector; si se omite, se usa el más débil")
+    dificultad: Optional[Nivel] = Field(None, description="Forzar la dificultad; si se omite, se deduce del riesgo")
+    presion: Literal["auto", "normal", "alta"] = Field("auto", description="Presión de tiempo")
     titulos_existentes: list[str] = Field(default_factory=list,
                                           description="Títulos de las misiones ya publicadas, para no repetirlas")
 
@@ -110,7 +122,9 @@ def sugerir_curso(solicitud: SolicitudCurso):
     return {
         "modelo": VERSION_MODELO,
         "analisis_grupal": grupal,
-        "borrador": borrador_curso(grupal, solicitud.vector),
+        "recomendacion": recomendacion_grupal(grupal),
+        "borrador": borrador_curso(grupal, solicitud.vector, solicitud.nivel,
+                                   solicitud.num_preguntas, solicitud.incluir_refuerzo),
     }
 
 
@@ -127,5 +141,7 @@ def sugerir_mision(solicitud: SolicitudMision):
     return {
         "modelo": VERSION_MODELO,
         "analisis_grupal": grupal,
-        "borrador": borrador_mision(grupal, historiales, solicitud.vector, solicitud.titulos_existentes),
+        "recomendacion": recomendacion_grupal(grupal),
+        "borrador": borrador_mision(grupal, historiales, solicitud.vector, solicitud.titulos_existentes,
+                                    solicitud.dificultad, solicitud.presion),
     }

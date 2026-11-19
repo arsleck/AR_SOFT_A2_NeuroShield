@@ -40,12 +40,14 @@ module.exports = {
   predecir: (idUsuario, interacciones) =>
     llamar('/predict', { metodo: 'POST', cuerpo: { id_usuario: idUsuario, interacciones } }),
   // Historiales de un grupo -> borrador de curso y examen
-  sugerirCurso: (usuarios, vector) =>
-    llamar('/sugerir-curso', { metodo: 'POST', cuerpo: { usuarios, vector: vector || null } }),
+  // `opciones` son las respuestas del asistente del administrador (nivel, num_preguntas, incluir_refuerzo)
+  sugerirCurso: (usuarios, vector, opciones = {}) =>
+    llamar('/sugerir-curso', { metodo: 'POST', cuerpo: { usuarios, vector: vector || null, ...opciones } }),
   // Historiales de un grupo -> borrador de misión del simulador
-  sugerirMision: (usuarios, vector, titulosExistentes) =>
+  // `opciones`: dificultad y presion ('auto' | 'normal' | 'alta')
+  sugerirMision: (usuarios, vector, titulosExistentes, opciones = {}) =>
     llamar('/sugerir-mision', {
       metodo: 'POST',
-      cuerpo: { usuarios, vector: vector || null, titulos_existentes: titulosExistentes || [] }
+      cuerpo: { usuarios, vector: vector || null, titulos_existentes: titulosExistentes || [], ...opciones }
     })
 };

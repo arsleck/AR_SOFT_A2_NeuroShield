@@ -130,36 +130,65 @@ def analisis_grupal(analisis_usuarios: list[dict]) -> dict:
     }
 
 
-def borrador_curso(grupal: dict, vector: str | None = None) -> dict:
-    """Arma un borrador de curso y examen para el vector más débil del grupo.
+NIVELES = ["Básico", "Intermedio", "Avanzado"]
+DURACION_POR_NIVEL = {"Básico": "10 min", "Intermedio": "12 min", "Avanzado": "15 min"}
 
-    El texto proviene de plantillas revisables (plantillas.py); la red decide
-    QUÉ tema y QUÉ nivel hacen falta. El administrador revisa y publica.
-    """
-    vector = vector if vector in VECTORES else grupal["vector_prioritario"]
-    riesgo = grupal["riesgo_promedio_por_vector"][vector]
 
-    # A mayor riesgo, contenido más básico; a menor riesgo, casos más avanzados.
+def nivel_para_riesgo(riesgo: float) -> str:
+    """A mayor riesgo, contenido más básico; a menor riesgo, un reto mayor."""
     if riesgo >= UMBRAL_ALTO:
-        nivel, duracion = "Básico", "10 min"
-    elif riesgo >= UMBRAL_MEDIO:
-        nivel, duracion = "Intermedio", "12 min"
-    else:
-        nivel, duracion = "Avanzado", "15 min"
+        return "Básico"
+    if riesgo >= UMBRAL_MEDIO:
+        return "Intermedio"
+    return "Avanzado"
+
+
+def recomendacion_grupal(grupal: dict) -> dict:
+    """Lo que la red recomienda por defecto, para preseleccionarlo en el asistente."""
+    riesgo = grupal["riesgo_promedio_por_vector"]
+    return {
+        "vector": grupal["vector_prioritario"],
+        "nivel_por_vector": {v: nivel_para_riesgo(r) for v, r in riesgo.items()},
+    }
+
+
+def borrador_curso(grupal: dict, vector: str | None = None, nivel: str | None = None,
+                   num_preguntas: int = 4, incluir_refuerzo: bool = True) -> dict:
+    """Arma un borrador de curso y examen.
+
+    Por defecto la red decide el vector (el más débil del grupo) y el nivel (según
+    su riesgo). El administrador puede fijar vector, nivel, cantidad de preguntas
+    y si incluye el módulo de refuerzo posterior al examen. El texto proviene de
+    plantillas revisables (plantillas.py); el administrador revisa y publica.
+    """
+    vector_ia = grupal["vector_prioritario"]
+    vector = vector if vector in VECTORES else vector_ia
+    riesgo = grupal["riesgo_promedio_por_vector"][vector]
+    nivel_ia = nivel_para_riesgo(riesgo)
+    nivel = nivel if nivel in NIVELES else nivel_ia
+    duracion = DURACION_POR_NIVEL[nivel]
+    num_preguntas = max(1, min(int(num_preguntas or 4), 6))
 
     plantilla = PLANTILLAS[vector]
-    orden_niveles = ["Básico", "Intermedio", "Avanzado"]
-    tope = orden_niveles.index(nivel)
-    # Examen de 4 preguntas: primero las del nivel elegido y luego las más cercanas.
+    tope = NIVELES.index(nivel)
+    # Examen: primero las preguntas del nivel elegido y luego las de los niveles más cercanos.
     preguntas = sorted(
         plantilla["preguntas"],
-        key=lambda p: abs(orden_niveles.index(p["nivel"]) - tope),
-    )[:4]
+        key=lambda p: abs(NIVELES.index(p["nivel"]) - tope),
+    )[:num_preguntas]
+    materiales = [m for m in plantilla["materiales"] if incluir_refuerzo or not m.get("es_post_quiz", False)]
 
+    elecciones = []
+    if vector != vector_ia:
+        elecciones.append(f"el administrador eligió el vector {vector} (la IA recomendaba {vector_ia})")
+    if nivel != nivel_ia:
+        elecciones.append(f"el administrador eligió el nivel {nivel} (la IA recomendaba {nivel_ia})")
     justificacion = (
         f"Borrador sugerido por el servicio de IA ({grupal['usuarios_analizados']} usuario(s) "
         f"analizado(s)). Riesgo promedio estimado en {vector}: {riesgo}%. "
-        f"Riesgo por vector: {grupal['riesgo_promedio_por_vector']}. Nivel propuesto: {nivel}."
+        f"Riesgo por vector: {grupal['riesgo_promedio_por_vector']}. Nivel: {nivel}. "
+        f"Examen de {len(preguntas)} preguntas{'' if incluir_refuerzo else ', sin módulo de refuerzo'}."
+        + (f" Ajustes: {'; '.join(elecciones)}." if elecciones else "")
     )
 
     return {
@@ -178,7 +207,7 @@ def borrador_curso(grupal: dict, vector: str | None = None) -> dict:
             {"orden": i + 1, "titulo": m["titulo"], "tipo_recurso": "lectura",
              "archivo_url": None, "mime_type": None,
              "contenido_texto": m["contenido_texto"], "es_post_quiz": m.get("es_post_quiz", False)}
-            for i, m in enumerate(plantilla["materiales"])
+            for i, m in enumerate(materiales)
         ],
         "quizzes": [
             {"orden": i + 1, "pregunta": p["pregunta"], "recurso_apoyo_url": None,
@@ -188,6 +217,8 @@ def borrador_curso(grupal: dict, vector: str | None = None) -> dict:
         ],
         "origen": "Servicio IA",
         "prompt_generacion": justificacion,
+        "nivel_recomendado": nivel_ia,
+        "vector_recomendado": vector_ia,
     }
 
 
@@ -211,7 +242,8 @@ def patron_de_tiempo(historiales: list[list[dict]]) -> dict:
 
 
 def borrador_mision(grupal: dict, historiales: list[list[dict]], vector: str | None = None,
-                    titulos_existentes: list[str] | None = None) -> dict:
+                    titulos_existentes: list[str] | None = None, dificultad: str | None = None,
+                    presion: str = "auto") -> dict:
     """Arma un borrador de misión para el simulador.
 
     La red neuronal decide el vector y la dificultad (a partir del riesgo
@@ -220,16 +252,14 @@ def borrador_mision(grupal: dict, historiales: list[list[dict]], vector: str | N
     """
     from .plantillas_misiones import MISIONES
 
-    vector = vector if vector in VECTORES else grupal["vector_prioritario"]
+    vector_ia = grupal["vector_prioritario"]
+    vector = vector if vector in VECTORES else vector_ia
     riesgo = grupal["riesgo_promedio_por_vector"][vector]
 
     # A mayor riesgo, un escenario más evidente; a menor riesgo, uno más sofisticado.
-    if riesgo >= UMBRAL_ALTO:
-        dificultad = "Básico"
-    elif riesgo >= UMBRAL_MEDIO:
-        dificultad = "Intermedio"
-    else:
-        dificultad = "Avanzado"
+    # El administrador puede fijar otra dificultad desde el asistente.
+    dificultad_ia = nivel_para_riesgo(riesgo)
+    dificultad = dificultad if dificultad in NIVELES else dificultad_ia
 
     orden = ["Básico", "Intermedio", "Avanzado"]
     existentes = {t.strip().lower() for t in (titulos_existentes or [])}
@@ -238,15 +268,18 @@ def borrador_mision(grupal: dict, historiales: list[list[dict]], vector: str | N
     elegida = dict(nuevos[0] if nuevos else candidatos[0])
     repetida = not nuevos
 
-    # Ajuste por presión de tiempo: si la mayoría de las caídas del grupo fueron
-    # respuestas apresuradas, se acorta el tiempo para entrenar bajo presión.
+    # Presión de tiempo. "auto": si la mayoría de las caídas del grupo fueron respuestas
+    # apresuradas, se acorta el tiempo. "alta": se acorta siempre. "normal": no se cambia.
     tiempo = patron_de_tiempo(historiales)
+    prisa_detectada = tiempo["caidas_con_tiempo"] >= 2 and tiempo["proporcion_prisa"] >= 0.5
     nota_tiempo = ""
-    if tiempo["caidas_con_tiempo"] >= 2 and tiempo["proporcion_prisa"] >= 0.5:
+    if presion == "alta" or (presion == "auto" and prisa_detectada):
         elegida["tiempo_limite"] = max(60, elegida["tiempo_limite"] - 30)
         nota_tiempo = (f" El {int(tiempo['proporcion_prisa'] * 100)} % de las caídas registradas ocurrió "
                        f"respondiendo con prisa, por lo que el tiempo límite se redujo a "
-                       f"{elegida['tiempo_limite']} s para entrenar bajo presión.")
+                       f"{elegida['tiempo_limite']} s para entrenar bajo presión."
+                       if presion == "auto" else
+                       f" El administrador pidió tiempo reducido: {elegida['tiempo_limite']} s.")
 
     nota_nivel = "" if elegida["dificultad"] == dificultad else (
         f" El escenario de nivel {dificultad} ya existe en el simulador, así que se propone uno de nivel "
@@ -257,6 +290,8 @@ def borrador_mision(grupal: dict, historiales: list[list[dict]], vector: str | N
         f"Borrador de misión sugerido por el servicio de IA ({grupal['usuarios_analizados']} usuario(s) "
         f"analizado(s)). Riesgo promedio estimado en {vector}: {riesgo}%. Dificultad recomendada: "
         f"{dificultad}.{nota_nivel}{nota_tiempo}{nota_repetida}"
+        + (f" El administrador eligió el vector {vector} (la IA recomendaba {vector_ia})." if vector != vector_ia else "")
+        + (f" El administrador eligió la dificultad {dificultad} (la IA recomendaba {dificultad_ia})." if dificultad != dificultad_ia else "")
     )
 
     return {
@@ -274,7 +309,10 @@ def borrador_mision(grupal: dict, historiales: list[list[dict]], vector: str | N
         "pistas_forenses": list(elegida["pistas_forenses"]),
         "origen": "Servicio IA",
         "prompt_generacion": justificacion,
-        "dificultad_recomendada": dificultad,
+        "dificultad_recomendada": dificultad_ia,
+        "dificultad_objetivo": dificultad,
+        "vector_recomendado": vector_ia,
+        "prisa_detectada": prisa_detectada,
         "patron_tiempo": tiempo,
         "escenario_repetido": repetida,
     }
