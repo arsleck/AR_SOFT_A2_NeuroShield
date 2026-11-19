@@ -224,3 +224,168 @@
     .cv-nav-modulo .cv-btn { max-width: 100%; width: 100%; justify-content: center; }
     .cv-tabs { scrollbar-width: thin; }
 }
+
+/* =========================================================================
+   EDITOR POR PASOS (constructor de cursos y de misiones del administrador)
+   ========================================================================= */
+.cv-editor {
+    width: min(1120px, 96vw); height: min(860px, 94vh);
+    background: var(--surface); border-radius: 14px; overflow: hidden;
+    display: grid; grid-template-rows: auto minmax(0, 1fr);
+    box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.45);
+}
+.cv-editor-cabecera {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+    padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border);
+}
+.cv-editor-cabecera h2 { font-size: 1.3rem; font-weight: 800; color: var(--text-main); margin-top: 0.35rem; line-height: 1.25; }
+.cv-editor-cabecera p { font-size: 0.84rem; color: var(--text-muted); margin-top: 0.2rem; }
+.cv-editor-etiqueta {
+    display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 800;
+    letter-spacing: 0.04em; text-transform: uppercase; padding: 0.22rem 0.6rem; border-radius: 999px;
+    background: var(--primary-bg); color: var(--primary-hover);
+}
+.cv-editor-etiqueta.cv-ia { background: #eef6ff; color: #1d4ed8; }
+.cv-editor-cerrar {
+    width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-muted); cursor: pointer; flex-shrink: 0; font-size: 1rem;
+}
+.cv-editor-cerrar:hover { background: #f1f5f2; color: var(--text-main); }
+
+.cv-editor-cuerpo { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 0; }
+
+/* Menú de pasos */
+.cv-editor-pasos { background: #f6f8f7; border-right: 1px solid var(--border); padding: 1.1rem 0.75rem; overflow-y: auto; }
+.cv-editor-pasos ol { list-style: none; display: grid; gap: 0.25rem; counter-reset: paso; }
+.cv-paso-btn {
+    display: grid; grid-template-columns: 30px 1fr; gap: 0.65rem; align-items: center; width: 100%;
+    padding: 0.6rem 0.65rem; border: 0; border-radius: 8px; background: none; text-align: left;
+    font: inherit; cursor: pointer; color: var(--text-main);
+}
+.cv-paso-btn:hover { background: #ebf0ed; }
+.cv-paso-num {
+    width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 800; background: var(--surface); border: 2px solid #cfd9d2; color: var(--text-muted);
+}
+.cv-paso-texto strong { display: block; font-size: 0.86rem; }
+.cv-paso-texto span { display: block; font-size: 0.74rem; color: var(--text-muted); margin-top: 1px; }
+.cv-paso-btn.cv-activo { background: var(--surface); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08); }
+.cv-paso-btn.cv-activo .cv-paso-num { background: var(--primary); border-color: var(--primary); color: #ffffff; }
+.cv-paso-btn.cv-completo .cv-paso-num { border-color: var(--primary); color: var(--primary); }
+.cv-paso-btn.cv-activo.cv-completo .cv-paso-num { background: var(--primary); border-color: var(--primary); color: #ffffff; }
+.cv-paso-btn.cv-con-error .cv-paso-num { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+.cv-paso-btn.cv-con-error .cv-paso-texto span { color: #b91c1c; }
+.cv-editor-ayuda-lateral { margin-top: 1rem; padding: 0.75rem; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); font-size: 0.76rem; color: var(--text-muted); line-height: 1.45; }
+
+/* Formulario y pie fijo */
+.cv-editor-form { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; margin: 0; }
+.cv-editor-contenido { overflow-y: auto; padding: 1.5rem 1.75rem 2rem; }
+.cv-paso { display: none; }
+.cv-paso.cv-activo { display: block; animation: fadeUp 0.2s ease; }
+.cv-paso-titulo { font-size: 1.15rem; font-weight: 800; color: var(--text-main); }
+.cv-paso-desc { font-size: 0.86rem; color: var(--text-muted); margin: 0.25rem 0 1.25rem; max-width: 680px; line-height: 1.5; }
+.cv-editor-pie {
+    display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    padding: 0.85rem 1.75rem; border-top: 1px solid var(--border); background: var(--surface);
+}
+.cv-editor-pie .cv-pie-estado { font-size: 0.82rem; color: var(--text-muted); }
+.cv-editor-pie .cv-pie-botones { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Campos */
+.cv-campos { display: grid; gap: 1rem; }
+.cv-fila-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
+.cv-fila-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.cv-fila-2-igual { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.cv-campo > label { display: block; font-size: 0.84rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; }
+.cv-campo .cv-pista { display: block; font-size: 0.76rem; color: var(--text-muted); margin-top: 0.3rem; line-height: 1.4; }
+.cv-campo .cv-opcional { font-weight: 500; color: var(--text-muted); font-size: 0.76rem; }
+.cv-editor .form-input:invalid:not(:placeholder-shown), .cv-editor .cv-mostrar-errores .form-input:invalid { border-color: #f87171; }
+
+/* Recuadro "¿Por qué la IA propone esto?" */
+.cv-recuadro-ia { border: 1px solid #c7dcfb; background: #f5f9ff; border-radius: 10px; padding: 1rem 1.1rem; margin-bottom: 1.5rem; }
+.cv-recuadro-ia h4 { font-size: 0.92rem; font-weight: 800; color: #1e3a8a; display: flex; align-items: center; gap: 0.45rem; }
+.cv-recuadro-ia ul { margin: 0.6rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.3rem; font-size: 0.84rem; color: #1f2a44; }
+.cv-recuadro-ia .cv-barras-ia { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 0.85rem; }
+.cv-barra-ia span { display: flex; justify-content: space-between; font-size: 0.74rem; font-weight: 700; color: #334155; margin-bottom: 3px; }
+.cv-barra-ia div { height: 7px; border-radius: 999px; background: #dbe5f3; overflow: hidden; }
+.cv-barra-ia div i { display: block; height: 100%; border-radius: 999px; }
+.cv-barra-ia.cv-destacada span { color: #1d4ed8; }
+.cv-recuadro-ia .cv-nota-ia { margin-top: 0.75rem; font-size: 0.78rem; color: #475569; }
+
+/* Bloques repetibles: módulos adicionales y preguntas */
+.cv-lista-vacia {
+    border: 2px dashed #d5ded8; border-radius: 10px; padding: 1.5rem; text-align: center;
+    color: var(--text-muted); font-size: 0.86rem; margin-bottom: 1rem;
+}
+.cv-lista-vacia i { display: block; font-size: 1.5rem; margin-bottom: 0.4rem; color: #a3b1a8; }
+.cv-bloque { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 1rem; overflow: hidden; }
+.cv-bloque-cabecera {
+    display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
+    padding: 0.65rem 1rem; background: #f6f8f7; border-bottom: 1px solid var(--border);
+}
+.cv-bloque-cabecera strong { font-size: 0.88rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem; }
+.cv-bloque-num {
+    display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0 0.4rem;
+    border-radius: 6px; background: var(--primary-bg); color: var(--primary-hover); font-size: 0.78rem; font-weight: 800;
+}
+.cv-bloque-quiz .cv-bloque-num { background: #e0f2fe; color: #0369a1; }
+.cv-bloque-cuerpo { padding: 1rem; display: grid; gap: 0.9rem; }
+.cv-adjunto { background: #f8faf9; border: 1px dashed var(--border); border-radius: 8px; padding: 0.8rem; }
+.cv-boton-agregar {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 0.85rem; border: 2px dashed #b9d9ab; border-radius: 10px; background: #f7fbf5;
+    color: var(--primary-hover); font: inherit; font-weight: 700; font-size: 0.88rem; cursor: pointer;
+}
+.cv-boton-agregar:hover { background: var(--primary-bg); border-color: var(--primary); }
+
+/* Opciones de respuesta: la correcta se resalta */
+.cv-opciones { display: grid; gap: 0.5rem; }
+.cv-opcion {
+    display: grid; grid-template-columns: auto 22px minmax(0, 1fr) auto; align-items: center; gap: 0.6rem;
+    padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+}
+.cv-opcion-letra { font-weight: 800; font-size: 0.8rem; color: var(--text-muted); width: 18px; text-align: center; }
+.cv-opcion .form-input { border: 0; background: transparent; padding: 0.35rem 0.2rem; }
+.cv-opcion .form-input:focus { box-shadow: none; }
+.cv-opcion-marca { font-size: 0.72rem; font-weight: 800; color: #15803d; visibility: hidden; white-space: nowrap; }
+.cv-opcion:has(.quiz-radio-correcta:checked) { border-color: #86efac; background: #f0fdf4; }
+.cv-opcion:has(.quiz-radio-correcta:checked) .cv-opcion-marca { visibility: visible; }
+.cv-opcion input[type="radio"] { width: 18px; height: 18px; accent-color: #16a34a; cursor: pointer; }
+
+/* Revisión */
+.cv-revision { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.5rem; align-items: start; }
+.cv-checklist { list-style: none; display: grid; gap: 0.5rem; }
+.cv-checklist li {
+    display: grid; grid-template-columns: 22px 1fr auto; gap: 0.6rem; align-items: start;
+    padding: 0.65rem 0.8rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.86rem;
+}
+.cv-checklist li i { margin-top: 2px; }
+.cv-checklist .cv-ok i { color: #16a34a; }
+.cv-checklist .cv-aviso { background: #fffbeb; border-color: #fde68a; }
+.cv-checklist .cv-aviso i { color: #d97706; }
+.cv-checklist .cv-falta { background: #fef2f2; border-color: #fecaca; }
+.cv-checklist .cv-falta i { color: #dc2626; }
+.cv-checklist small { display: block; color: var(--text-muted); font-size: 0.76rem; margin-top: 2px; }
+.cv-checklist .cv-ir-paso { font-size: 0.76rem; font-weight: 700; color: var(--primary); background: none; border: 0; cursor: pointer; white-space: nowrap; }
+.cv-vista-previa h4 { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.6rem; }
+.cv-tarjeta-previa { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.cv-tarjeta-previa-cabecera { padding: 1rem; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; display: flex; gap: 0.75rem; align-items: center; }
+.cv-tarjeta-previa-cabecera .cv-modulo-icono { background: rgba(108, 192, 74, 0.2); color: var(--cisco-green); }
+.cv-tarjeta-previa-cabecera small { display: block; font-size: 0.7rem; font-weight: 800; color: var(--cisco-green); text-transform: uppercase; }
+.cv-tarjeta-previa-cabecera strong { font-size: 0.95rem; line-height: 1.3; }
+.cv-tarjeta-previa-cuerpo { padding: 0.9rem 1rem; font-size: 0.82rem; color: var(--text-muted); display: grid; gap: 0.6rem; }
+.cv-mensaje-previo { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: 0.82rem; }
+.cv-mensaje-previo-cabecera { padding: 0.7rem 0.9rem; background: #f6f8f7; border-bottom: 1px solid var(--border); }
+.cv-mensaje-previo-cabecera strong { display: block; color: var(--text-main); }
+.cv-mensaje-previo-cabecera code { font-size: 0.74rem; color: #b91c1c; }
+.cv-mensaje-previo-cuerpo { padding: 0.9rem; display: grid; gap: 0.7rem; color: var(--text-main); line-height: 1.5; }
+.cv-boton-trampa { display: inline-block; padding: 0.45rem 0.8rem; border-radius: 6px; background: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.8rem; }
+
+@media (max-width: 860px) {
+    .cv-editor { width: 100vw; height: 100vh; border-radius: 0; }
+    .cv-editor-cuerpo { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+    .cv-editor-pasos { border-right: 0; border-bottom: 1px solid var(--border); padding: 0.5rem; }
+    .cv-editor-pasos ol { grid-auto-flow: column; overflow-x: auto; }
+    .cv-paso-texto span, .cv-editor-ayuda-lateral { display: none; }
+    .cv-fila-2, .cv-fila-3, .cv-fila-2-igual, .cv-revision, .cv-recuadro-ia .cv-barras-ia { grid-template-columns: 1fr; }
+}

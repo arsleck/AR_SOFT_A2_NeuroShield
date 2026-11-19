@@ -195,6 +195,17 @@ const AppController = {
             if (overlay) overlay.remove();
         };
 
+        // Editor por pasos (se activa antes del guardado para poder llevar al paso con errores)
+        EditorPasos.activar(document.getElementById('tutorial-overlay'), {
+            revision: (form) => TutorialComponent.renderRevisionCurso(form),
+            listas: [
+                { contenedor: 'contenedor-materiales-curso', paso: 3, etiqueta: 'Módulo', numero: i => i + 3,
+                  subtitulo: n => `${n} módulo${n === 1 ? '' : 's'} · opcional` },
+                { contenedor: 'contenedor-quizzes-curso', paso: 4, etiqueta: 'Pregunta', numero: i => i + 1,
+                  subtitulo: n => `${n} pregunta${n === 1 ? '' : 's'}` }
+            ]
+        });
+
         document.getElementById('btn-cerrar-modal-curso')?.addEventListener('click', cerrarModal);
 
         const contenedorMateriales = document.getElementById('contenedor-materiales-curso');
@@ -435,6 +446,11 @@ const AppController = {
             const overlay = document.getElementById('tutorial-overlay');
             if (overlay) overlay.remove();
         };
+
+        // Editor por pasos (se activa antes del guardado para poder llevar al paso con errores)
+        EditorPasos.activar(document.getElementById('tutorial-overlay'), {
+            revision: (form) => TutorialComponent.renderRevisionMision(form)
+        });
 
         document.getElementById('btn-cerrar-modal-mision')?.addEventListener('click', cerrarModal);
 
@@ -1149,20 +1165,9 @@ const AppController = {
                         return;
                     }
 
-                    document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioCurso(datos.borrador));
+                    // El editor se abre como curso nuevo, precargado con el borrador y la explicación de la IA
+                    document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioCurso(datos.borrador, { sugerenciaIA: datos }));
                     this.activarEventosFormularioCurso(null, datos);
-
-                    // El formulario se abre como curso nuevo, identificado como borrador de IA
-                    const modal = document.getElementById('tutorial-overlay');
-                    const grupal = datos.analisis_grupal;
-                    const etiqueta = modal?.querySelector('.quiz-modal-header .badge-pill');
-                    const descripcion = modal?.querySelector('.quiz-modal-header p');
-                    const btnPublicar = document.getElementById('btn-submit-curso-completo');
-                    if (etiqueta) etiqueta.innerHTML = '<i class="fa-solid fa-brain"></i> Borrador sugerido por IA';
-                    if (descripcion) {
-                        descripcion.textContent = `La red neuronal analizó ${grupal.usuarios_analizados} usuario(s): el vector más débil es ${grupal.vector_prioritario} (${grupal.riesgo_promedio_por_vector[grupal.vector_prioritario]}% de riesgo promedio). Revisa y ajusta el contenido antes de publicarlo.`;
-                    }
-                    if (btnPublicar) btnPublicar.innerHTML = '<i class="fa-solid fa-circle-check"></i> Aprobar y Publicar Curso Sugerido';
                 } catch (err) {
                     alert('Error de conexión con el servidor.');
                 } finally {
@@ -1224,29 +1229,9 @@ const AppController = {
                         return;
                     }
 
-                    // El formulario se abre como misión nueva, precargado con el borrador
-                    document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioMision(datos.borrador));
+                    // El editor se abre como misión nueva, precargado con el borrador y la explicación de la IA
+                    document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioMision(datos.borrador, { sugerenciaIA: datos }));
                     this.activarEventosFormularioMision(null, datos);
-
-                    const modal = document.getElementById('tutorial-overlay');
-                    const grupal = datos.analisis_grupal;
-                    const borrador = datos.borrador;
-                    const etiqueta = modal?.querySelector('.quiz-modal-header .badge-pill');
-                    const titulo = modal?.querySelector('.quiz-modal-header h2');
-                    const descripcion = modal?.querySelector('.quiz-modal-header p');
-                    const btnPublicar = document.getElementById('btn-submit-mision');
-                    if (etiqueta) etiqueta.innerHTML = '<i class="fa-solid fa-brain"></i> Borrador sugerido por IA';
-                    if (titulo) titulo.textContent = borrador.titulo;
-                    if (descripcion) {
-                        const prisa = borrador.patron_tiempo && borrador.patron_tiempo.caidas_con_tiempo > 0
-                            ? ` El ${Math.round(borrador.patron_tiempo.proporcion_prisa * 100)} % de las caídas fueron respuestas apresuradas.`
-                            : '';
-                        const nivel = borrador.dificultad !== borrador.dificultad_recomendada
-                            ? ` Como ya existe un escenario ${borrador.dificultad_recomendada} de ese vector, se propone uno ${borrador.dificultad}.`
-                            : '';
-                        descripcion.textContent = `La red neuronal analizó ${grupal.usuarios_analizados} usuario(s): el vector más débil es ${borrador.vector} (${grupal.riesgo_promedio_por_vector[borrador.vector]}% de riesgo promedio) y se recomienda dificultad ${borrador.dificultad_recomendada}.${nivel}${prisa} Revisa y ajusta el escenario antes de publicarlo.`;
-                    }
-                    if (btnPublicar) btnPublicar.innerHTML = '<i class="fa-solid fa-circle-check"></i> Aprobar y Publicar Misión Sugerida';
                 } catch (err) {
                     alert('Error de conexión con el servidor.');
                 } finally {
