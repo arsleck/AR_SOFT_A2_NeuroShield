@@ -627,7 +627,7 @@ const AppController = {
                         10,
                         Math.min(95, AppModel.estadoUsuario.riesgoPorVector[vectorCurso] + ajuste)
                     );
-                    const valores = Object.values(AppModel.estadoUsuario.riesgoPorVector);
+                    const valores = Object.values(AppModel.estadoUsuario.riesgoPorVector).filter(v => typeof v === 'number'); // sin contar vectores sin datos
                     AppModel.estadoUsuario.riesgoActual = Math.round(valores.reduce((a, b) => a + b, 0) / valores.length);
                     sessionStorage.setItem('neuroshield_usuario', JSON.stringify(AppModel.estadoUsuario));
                 }
@@ -652,7 +652,7 @@ const AppController = {
                             const primera = (ia.recomendaciones || [])[0];
                             resGlobal.insertAdjacentHTML('beforeend', `
                                 <div style="margin-top: 0.5rem; font-weight: 600;">
-                                    <i class="fa-solid fa-brain"></i> Análisis de IA: vulnerabilidad ${AnalisisIAComponent.textoNivel(ia.nivel)} (${ia.puntaje}%).
+                                    <i class="fa-solid ${ia.fuente === 'reglas' ? 'fa-calculator' : 'fa-brain'}"></i> ${ia.fuente === 'reglas' ? 'Estimación con tu historial' : 'Análisis de IA'}: vulnerabilidad ${AnalisisIAComponent.textoNivel(ia.nivel)} (${ia.puntaje}%).
                                     ${primera ? primera.texto : ''}
                                 </div>`);
                         }
@@ -1146,34 +1146,16 @@ const AppController = {
                 this.activarEventosFormularioCurso(null);
             });
 
-            // Borrador de curso y examen sugerido por el servicio de IA (el administrador revisa y publica)
-            document.getElementById('btn-sugerir-curso-ia')?.addEventListener('click', async (e) => {
-                const btn = e.currentTarget;
-                const textoOriginal = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analizando con IA...';
-
-                try {
-                    const res = await fetch('http://localhost:3000/api/admin/ia/sugerir-curso', {
-                        method: 'POST',
-                        headers: authHeaders,
-                        body: JSON.stringify({ id_grupo: document.getElementById('select-grupo-ia')?.value || null })
-                    });
-                    const datos = await res.json();
-                    if (!res.ok) {
-                        alert(datos.error || 'No se pudo generar la sugerencia.');
-                        return;
+            // Asistente de IA: el administrador responde unas preguntas y la red genera el borrador
+            // del curso; luego se abre el editor por pasos para revisarlo y publicarlo.
+            document.getElementById('btn-sugerir-curso-ia')?.addEventListener('click', () => {
+                AsistenteIAComponent.abrir('curso', {
+                    headers: authHeaders,
+                    alGenerar: (datos) => {
+                        document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioCurso(datos.borrador, { sugerenciaIA: datos }));
+                        this.activarEventosFormularioCurso(null, datos);
                     }
-
-                    // El editor se abre como curso nuevo, precargado con el borrador y la explicación de la IA
-                    document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioCurso(datos.borrador, { sugerenciaIA: datos }));
-                    this.activarEventosFormularioCurso(null, datos);
-                } catch (err) {
-                    alert('Error de conexión con el servidor.');
-                } finally {
-                    btn.disabled = false;
-                    btn.innerHTML = textoOriginal;
-                }
+                });
             });
 
             document.querySelectorAll('.btn-editar-curso').forEach(btn => {
@@ -1210,34 +1192,15 @@ const AppController = {
                 });
             });
 
-            // Borrador de misión del simulador sugerido por el servicio de IA (el administrador revisa y publica)
-            document.getElementById('btn-sugerir-mision-ia')?.addEventListener('click', async (e) => {
-                const btn = e.currentTarget;
-                const textoOriginal = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analizando con IA...';
-
-                try {
-                    const res = await fetch('http://localhost:3000/api/admin/ia/sugerir-mision', {
-                        method: 'POST',
-                        headers: authHeaders,
-                        body: JSON.stringify({ id_grupo: document.getElementById('select-grupo-ia-mision')?.value || null })
-                    });
-                    const datos = await res.json();
-                    if (!res.ok) {
-                        alert(datos.error || 'No se pudo generar la sugerencia.');
-                        return;
+            // Asistente de IA para misiones: vector, dificultad y presión de tiempo
+            document.getElementById('btn-sugerir-mision-ia')?.addEventListener('click', () => {
+                AsistenteIAComponent.abrir('mision', {
+                    headers: authHeaders,
+                    alGenerar: (datos) => {
+                        document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioMision(datos.borrador, { sugerenciaIA: datos }));
+                        this.activarEventosFormularioMision(null, datos);
                     }
-
-                    // El editor se abre como misión nueva, precargado con el borrador y la explicación de la IA
-                    document.body.insertAdjacentHTML('beforeend', TutorialComponent.renderFormularioMision(datos.borrador, { sugerenciaIA: datos }));
-                    this.activarEventosFormularioMision(null, datos);
-                } catch (err) {
-                    alert('Error de conexión con el servidor.');
-                } finally {
-                    btn.disabled = false;
-                    btn.innerHTML = textoOriginal;
-                }
+                });
             });
 
             document.getElementById('btn-nueva-mision')?.addEventListener('click', () => {
@@ -1403,9 +1366,13 @@ const AppController = {
                     if (AppModel.ultimoResultadoSimulacion) AppModel.ultimoResultadoSimulacion.analisisIA = ia;
 
                     if (AppModel.aplicarAnalisisIA(ia)) {
-                        const detalle = Object.entries(ia.riesgo_por_vector).map(([v, r]) => `${v} ${r}%`).join(' · ');
-                        resultado.logs.push(`<span class='ok'>[SERVICIO DE IA] Red neuronal ${ia.modelo}: vulnerabilidad ${AnalisisIAComponent.textoNivel(ia.nivel)} (${ia.puntaje}%) con ${ia.interacciones_analizadas} interacciones analizadas.</span>`);
-                        resultado.logs.push(`Riesgo estimado por vector: ${detalle}`);
+                        const detalle = Object.entries(ia.riesgo_por_vector).map(([v, r]) => `${v} ${typeof r === 'number' ? r + '%' : 'sin datos'}`).join(' · ');
+                        if (ia.fuente === 'reglas') {
+                            resultado.logs.push(`<span class='warn'>[MOTOR DE REGLAS] Servicio de IA no disponible: riesgo ${AnalisisIAComponent.textoNivel(ia.nivel)} (${ia.puntaje}%) calculado con ${ia.interacciones_analizadas} interacciones de tu historial.</span>`);
+                        } else {
+                            resultado.logs.push(`<span class='ok'>[SERVICIO DE IA] Red neuronal ${ia.modelo}: vulnerabilidad ${AnalisisIAComponent.textoNivel(ia.nivel)} (${ia.puntaje}%) con ${ia.interacciones_analizadas} interacciones analizadas.</span>`);
+                        }
+                        resultado.logs.push(`Riesgo por vector: ${detalle}`);
                     } else {
                         resultado.logs.push(`<span class='warn'>[SERVICIO DE IA] No disponible: se aplicó el motor de reglas.</span>`);
                     }

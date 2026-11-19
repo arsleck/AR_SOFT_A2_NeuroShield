@@ -79,7 +79,8 @@ const UIView = {
         };
 
         const etiquetas = Object.keys(vectores);
-        const valores = Object.values(vectores);
+        // null = vector sin datos: se deja sin barra en lugar de inventar un valor
+        const valores = Object.values(vectores).map(v => (typeof v === 'number' ? v : null));
 
         // Asignar color semáforo según nivel de riesgo
         const coloresFondo = valores.map(v => {
@@ -117,6 +118,7 @@ const UIView = {
                         callbacks: {
                             label: function(context) {
                                 const val = context.parsed.x;
+                                if (val === null || val === undefined) return ' Sin datos aún';
                                 const nivel = val < 40 ? 'Riesgo Bajo' : (val < 60 ? 'Riesgo Moderado' : 'Riesgo Alto - Reforzar');
                                 return ` ${val}% de vulnerabilidad (${nivel})`;
                             }

@@ -160,6 +160,55 @@ async function misionesRecomendadasSeguro(pool, idUsuario, analisis) {
   }
 }
 
+// Respaldo cuando el servicio de IA no responde: riesgo por vector calculado con el historial real.
+// Tasa de fallos suavizada: (fallos + 0,5) / (intentos + 1), para que un solo intento no dé 0 % ni 100 %.
+// Los vectores sin práctica quedan en null (sin datos), no con un valor inventado.
+const MODELO_REGLAS = 'reglas-v1';
+const PESO_RESULTADO = { caer: 1, incorrecta: 1, ignorar: 0.5, tiempo: 0.5, reportar: 0, correcta: 0 };
+const NOMBRE_VECTOR = { Phishing: 'phishing (correo)', Smishing: 'smishing (SMS)', Vishing: 'vishing (llamadas)', 'Ing. Social': 'ingeniería social' };
+
+function estimacionPorReglas(interacciones) {
+  const riesgo = {};
+  VECTORES.forEach(v => {
+    const propias = interacciones.filter(i => i.vector === v);
+    riesgo[v] = propias.length === 0 ? null
+      : Math.round(((propias.reduce((s, i) => s + (PESO_RESULTADO[i.resultado] ?? 0.5), 0) + 0.5) / (propias.length + 1)) * 100);
+  });
+  const conDatos = VECTORES.filter(v => riesgo[v] !== null);
+  const puntaje = Math.round(conDatos.reduce((s, v) => s + riesgo[v], 0) / conDatos.length);
+  const nivel = puntaje >= 60 ? 'Alto' : puntaje >= 40 ? 'Medio' : 'Bajo';
+  const ordenados = [...conDatos].sort((a, b) => riesgo[b] - riesgo[a]);
+  const prioritarios = ordenados.filter(v => riesgo[v] >= 40);
+  const sinPractica = VECTORES.filter(v => riesgo[v] === null);
+  const peor = ordenados[0];
+
+  const recomendaciones = [{
+    icono: 'fa-calculator', color: nivel === 'Alto' ? 'text-danger' : nivel === 'Medio' ? 'text-warning' : 'text-success',
+    texto: `Riesgo ${nivel.toLowerCase()} (${puntaje}%) calculado con tus ${interacciones.length} interacciones. ` +
+           `Tu vector más débil es ${NOMBRE_VECTOR[peor]} (${riesgo[peor]}%).`
+  }];
+  if (riesgo[peor] >= 40) {
+    recomendaciones.push({ icono: 'fa-book-open', color: 'text-primary',
+      texto: `Repasa el curso de ${NOMBRE_VECTOR[peor]} y practica una misión de ese vector reportando la amenaza.` });
+  }
+  if (sinPractica.length > 0) {
+    recomendaciones.push({ icono: 'fa-compass', color: 'text-primary',
+      texto: `Aún no hay datos tuyos en: ${sinPractica.map(v => NOMBRE_VECTOR[v]).join(', ')}. Completa una misión o un quiz de esos temas.` });
+  }
+
+  return {
+    puntaje, nivel, riesgo_por_vector: riesgo,
+    vectores_prioritarios: prioritarios.length ? prioritarios : ordenados.slice(0, 1),
+    vectores_sin_practica: sinPractica,
+    perfil_refuerzo: {}, refuerzos: [],
+    recomendaciones,
+    interacciones_analizadas: interacciones.length,
+    modelo: MODELO_REGLAS
+  };
+}
+
+const fuenteDeModelo = modelo => (modelo === MODELO_REGLAS ? 'reglas' : 'red_neuronal');
+
 // Flujo completo: historial -> servicio de IA -> guardar -> respuesta para el frontend.
 // Devuelve { disponible: false, motivo } cuando no se pudo usar la IA.
 async function analizarUsuario(pool, idUsuario) {
@@ -168,9 +217,12 @@ async function analizarUsuario(pool, idUsuario) {
     return { disponible: false, motivo: 'El usuario aún no tiene interacciones para analizar.' };
   }
 
-  const analisis = await iaClient.predecir(Number(idUsuario), interacciones);
+  // Si el servicio de IA no responde, se usa el respaldo por reglas con el mismo historial
+  let analisis = await iaClient.predecir(Number(idUsuario), interacciones);
+  let aviso = null;
   if (!analisis) {
-    return { disponible: false, motivo: 'El servicio de IA no respondió; se aplicó el motor de reglas.' };
+    analisis = estimacionPorReglas(interacciones);
+    aviso = 'El servicio de IA no respondió; el riesgo se calculó con tu historial (tasa de fallos por vector).';
   }
 
   await pool.query(
@@ -197,6 +249,8 @@ async function analizarUsuario(pool, idUsuario) {
 
   return {
     disponible: true,
+    fuente: fuenteDeModelo(analisis.modelo),
+    aviso,
     ...analisis,
     cursos_recomendados: await cursosRecomendados(pool, idUsuario, analisis.vectores_prioritarios),
     misiones_recomendadas: await misionesRecomendadasSeguro(pool, idUsuario, analisis)
@@ -213,6 +267,7 @@ async function ultimoAnalisis(pool, idUsuario) {
   const a = rows[0];
   return {
     disponible: true,
+    fuente: fuenteDeModelo(a.modelo),
     puntaje: a.puntaje,
     nivel: a.nivel,
     riesgo_por_vector: a.riesgo_por_vector,
@@ -257,11 +312,28 @@ async function historialesDeGrupo(pool, idGrupo) {
 const SIN_DATOS = 'Todavía no hay simulaciones ni quizzes registrados para analizar.';
 
 // Borrador de curso para el administrador a partir del historial de un grupo (o de todos).
-async function sugerirCursoParaGrupo(pool, idGrupo, vector) {
+// Respuestas del asistente del administrador: solo se envían valores válidos; lo demás lo decide la red.
+const NIVELES = ['Básico', 'Intermedio', 'Avanzado'];
+function opcionesCurso(r = {}) {
+  const o = {};
+  if (NIVELES.includes(r.nivel)) o.nivel = r.nivel;
+  const n = parseInt(r.num_preguntas, 10);
+  if (n >= 3 && n <= 6) o.num_preguntas = n;
+  if (typeof r.incluir_refuerzo === 'boolean') o.incluir_refuerzo = r.incluir_refuerzo;
+  return o;
+}
+function opcionesMision(r = {}) {
+  const o = {};
+  if (NIVELES.includes(r.dificultad)) o.dificultad = r.dificultad;
+  if (['auto', 'normal', 'alta'].includes(r.presion)) o.presion = r.presion;
+  return o;
+}
+
+async function sugerirCursoParaGrupo(pool, idGrupo, vector, respuestas) {
   const usuarios = await historialesDeGrupo(pool, idGrupo);
   if (usuarios.length === 0) return { disponible: false, motivo: SIN_DATOS };
 
-  const sugerencia = await iaClient.sugerirCurso(usuarios, VECTORES.includes(vector) ? vector : null);
+  const sugerencia = await iaClient.sugerirCurso(usuarios, VECTORES.includes(vector) ? vector : null, opcionesCurso(respuestas));
   if (!sugerencia) {
     return { disponible: false, motivo: 'El servicio de IA no está disponible. Verifica que esté encendido.' };
   }
@@ -270,13 +342,13 @@ async function sugerirCursoParaGrupo(pool, idGrupo, vector) {
 
 // Borrador de misión del simulador a partir del historial de un grupo (o de todos).
 // Envía también los títulos de las misiones activas para que la IA no repita escenarios.
-async function sugerirMisionParaGrupo(pool, idGrupo, vector) {
+async function sugerirMisionParaGrupo(pool, idGrupo, vector, respuestas) {
   const usuarios = await historialesDeGrupo(pool, idGrupo);
   if (usuarios.length === 0) return { disponible: false, motivo: SIN_DATOS };
 
   const { rows } = await pool.query('SELECT titulo FROM Misiones WHERE activo = TRUE');
   const sugerencia = await iaClient.sugerirMision(
-    usuarios, VECTORES.includes(vector) ? vector : null, rows.map(r => r.titulo)
+    usuarios, VECTORES.includes(vector) ? vector : null, rows.map(r => r.titulo), opcionesMision(respuestas)
   );
   if (!sugerencia) {
     return { disponible: false, motivo: 'El servicio de IA no está disponible. Verifica que esté encendido.' };

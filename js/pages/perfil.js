@@ -9,9 +9,22 @@ const PerfilPage = {
         const diagCompletado = usuario.diagnosticoCompletado;
         const nivelConocimiento = usuario.nivelConocimiento;
 
+        // Origen del riesgo que muestra la gráfica (sin datos no se pinta ningún valor de ejemplo)
+        const fuente = usuario.fuenteRiesgo;
+        const sinDatos = !fuente;
+        const vectoresSinDatos = Object.entries(usuario.riesgoPorVector || {}).filter(([, v]) => v === null || v === undefined).map(([k]) => k);
+        const textoFuente = fuente === 'red_neuronal'
+            ? `Estimado por la red neuronal con tus últimas ${(usuario.analisisIA && usuario.analisisIA.interacciones_analizadas) || 0} interacciones.`
+            : fuente === 'reglas'
+                ? `Calculado con tu historial real (${(usuario.analisisIA && usuario.analisisIA.interacciones_analizadas) || 0} interacciones) porque el servicio de IA no estaba disponible.`
+                : 'Resultado de tu diagnóstico inicial; se actualizará cuando completes misiones o exámenes.';
+
         let estadoRiesgoTexto = "Riesgo Moderado";
         let estadoRiesgoClase = "status-warning";
-        if (riesgo < 40) {
+        if (sinDatos) {
+            estadoRiesgoTexto = "Sin datos aún";
+            estadoRiesgoClase = "";
+        } else if (riesgo < 40) {
             estadoRiesgoTexto = "Riesgo Bajo (Seguro)";
             estadoRiesgoClase = "status-success";
         } else if (riesgo >= 60) {
@@ -96,19 +109,30 @@ const PerfilPage = {
                             </div>
                             <div class="security-score-badge ${estadoRiesgoClase}">
                                 <i class="fa-solid fa-gauge-high"></i>
-                                <span>Promedio: <strong id="score-text">${riesgo}%</strong> (${estadoRiesgoTexto})</span>
+                                ${sinDatos
+                                    ? `<span><strong>${estadoRiesgoTexto}</strong></span>`
+                                    : `<span>Promedio: <strong id="score-text">${riesgo}%</strong> (${estadoRiesgoTexto})</span>`}
                             </div>
                         </div>
 
-                        <div class="chart-legend-bar mb-2">
+                        <div class="chart-legend-bar mb-2" ${sinDatos ? 'style="display: none;"' : ''}>
                             <span><i class="fa-solid fa-circle" style="color: #10b981;"></i> 0-39% Seguro</span>
                             <span><i class="fa-solid fa-circle" style="color: #f59e0b;"></i> 40-59% Moderado</span>
                             <span><i class="fa-solid fa-circle" style="color: #ef4444;"></i> 60-100% Alto Riesgo</span>
                         </div>
 
-                        <div class="chart-container" style="height: 210px;">
-                            <canvas id="vulnChart"></canvas>
-                        </div>
+                        ${sinDatos ? `
+                            <div class="cv-lista-vacia" style="margin: 0.5rem 0 0;">
+                                <i class="fa-solid fa-chart-simple"></i>
+                                Aún no hay datos para calcular tu riesgo. Realiza el diagnóstico inicial, una misión del simulador o el examen de un curso y esta gráfica se llenará con tus resultados.
+                            </div>` : `
+                            <div class="chart-container" style="height: 210px;">
+                                <canvas id="vulnChart"></canvas>
+                            </div>
+                            <p class="text-muted" style="font-size: 0.78rem; margin-top: 0.5rem;">
+                                <i class="fa-solid ${fuente === 'red_neuronal' ? 'fa-brain' : fuente === 'reglas' ? 'fa-calculator' : 'fa-clipboard-check'}"></i>
+                                ${textoFuente}${vectoresSinDatos.length ? ` Sin datos aún en: ${vectoresSinDatos.join(', ')}.` : ''}
+                            </p>`}
                     </div>
 
                     <div class="card">

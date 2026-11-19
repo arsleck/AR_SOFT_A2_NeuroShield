@@ -39,9 +39,8 @@ const GestionPage = {
         const cursos = AppModel.catalogoCursos || [];
         return `
         ${this.encabezado('Cursos', 'Microcursos con módulos teóricos, recursos multimedia y examen. La IA puede proponer un borrador según el vector más débil del grupo.', `
-            ${this.selectorGrupos('select-grupo-ia', 'Usuarios que analizará la IA')}
-            <button type="button" id="btn-sugerir-curso-ia" class="cv-btn" title="La red neuronal analiza el desempeño y propone un curso con su examen">
-                <i class="fa-solid fa-brain"></i> Sugerir curso con IA
+            <button type="button" id="btn-sugerir-curso-ia" class="cv-btn" title="Responde unas preguntas y la red neuronal propone un curso con su examen">
+                <i class="fa-solid fa-brain"></i> Generar curso con IA
             </button>
             <button type="button" id="btn-nuevo-curso" class="cv-btn cv-btn-primario">
                 <i class="fa-solid fa-plus"></i> Curso
@@ -94,9 +93,8 @@ const GestionPage = {
 
         return `
         ${this.encabezado('Simuladores', 'Escenarios de ataque por vector. Los estudiantes los ven como módulos y pueden practicar cada uno en las 5 dinámicas.', `
-            ${this.selectorGrupos('select-grupo-ia-mision', 'Usuarios que analizará la IA')}
-            <button type="button" id="btn-sugerir-mision-ia" class="cv-btn" title="La red neuronal analiza el desempeño y propone un escenario de simulación">
-                <i class="fa-solid fa-brain"></i> Sugerir misión con IA
+            <button type="button" id="btn-sugerir-mision-ia" class="cv-btn" title="Responde unas preguntas y la red neuronal propone un escenario de simulación">
+                <i class="fa-solid fa-brain"></i> Generar misión con IA
             </button>
             <button type="button" id="btn-nueva-mision" class="cv-btn cv-btn-primario">
                 <i class="fa-solid fa-plus"></i> Misión
@@ -304,7 +302,7 @@ const GestionPage = {
                         <tr>
                             <td>
                                 <div class="cv-principal">${f.nombre}</div>
-                                <div class="cv-secundario">${f.nombre_grupo || 'Sin grupo'} · ${f.fecha_analisis ? 'análisis ' + new Date(f.fecha_analisis).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }) : 'sin análisis'}</div>
+                                <div class="cv-secundario">${f.nombre_grupo || 'Sin grupo'} · ${f.fecha_analisis ? 'análisis ' + new Date(f.fecha_analisis).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }) : 'sin análisis'}${f.modelo === 'reglas-v1' ? ' · <span title="El servicio de IA no estaba disponible; se calculó con la tasa de fallos">por reglas</span>' : ''}</div>
                             </td>
                             ${this.VECTORES.map(v => `<td class="cv-col-num">${nota(riesgo[v], sinPractica.includes(v))}</td>`).join('')}
                             <td class="cv-col-num">${nota(f.puntaje, false)}</td>

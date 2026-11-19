@@ -116,12 +116,17 @@ const AnalisisIAComponent = {
         }
 
         const color = this.colorRiesgo(ia.puntaje);
-        const pie = `Estimación de la red neuronal convolucional (modelo ${ia.modelo || 'N/D'}) a partir de tus últimas ${ia.interacciones_analizadas || 0} interacciones en simulaciones y quizzes.`;
+        const porReglas = ia.fuente === 'reglas';
+        const titulo = porReglas ? 'Estimación de riesgo (sin IA)' : 'Análisis del Servicio de IA';
+        const icono = porReglas ? 'fa-calculator' : 'fa-brain';
+        const pie = porReglas
+            ? `El servicio de IA no estaba disponible, así que el riesgo se calculó con tu historial real: tasa de fallos por vector en tus últimas ${ia.interacciones_analizadas || 0} interacciones.`
+            : `Estimación de la red neuronal convolucional (modelo ${ia.modelo || 'N/D'}) a partir de tus últimas ${ia.interacciones_analizadas || 0} interacciones en simulaciones y quizzes.`;
 
         if (opciones.compacto) {
             return `
             <div class="card" style="border-left: 5px solid ${color};">
-                <h3><i class="fa-solid fa-brain text-primary me-1"></i> Análisis del Servicio de IA</h3>
+                <h3><i class="fa-solid ${icono} text-primary me-1"></i> ${titulo}</h3>
                 <p class="text-muted mt-1 mb-3" style="font-size: 0.85rem;">
                     Vulnerabilidad <strong>${this.textoNivel(ia.nivel)}</strong> (${ia.puntaje}%). ${pie}
                 </p>
@@ -131,23 +136,25 @@ const AnalisisIAComponent = {
             </div>`;
         }
 
-        const barras = Object.entries(ia.riesgo_por_vector || {}).map(([vector, valor]) => `
+        const barras = Object.entries(ia.riesgo_por_vector || {}).map(([vector, valor]) => {
+            const conDato = typeof valor === 'number';
+            return `
             <div style="margin-bottom: 0.7rem;">
                 <div class="flex-between" style="font-size: 0.85rem; font-weight: 700;">
                     <span>${vector}${(ia.vectores_sin_practica || []).includes(vector) ? ' <span class="text-muted" style="font-weight: 400;">(sin práctica aún)</span>' : ''}</span>
-                    <span>${valor}%</span>
+                    <span>${conDato ? valor + '%' : '<span class="text-muted" style="font-weight: 500;">Sin datos</span>'}</span>
                 </div>
                 <div style="height: 10px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 999px; overflow: hidden;">
-                    <div style="width: ${valor}%; height: 100%; background: ${this.colorRiesgo(valor)};"></div>
+                    <div style="width: ${conDato ? valor : 0}%; height: 100%; background: ${this.colorRiesgo(valor)};"></div>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
 
         return `
         <div class="card mt-4" style="border-left: 5px solid ${color};">
             <div class="flex-between mb-3" style="flex-wrap: wrap; gap: 0.75rem;">
                 <div>
-                    <h3><i class="fa-solid fa-brain text-primary me-1"></i> Análisis del Servicio de IA</h3>
+                    <h3><i class="fa-solid ${icono} text-primary me-1"></i> ${titulo}</h3>
                     <p class="text-muted" style="font-size: 0.84rem;">${pie}</p>
                 </div>
                 <span class="badge-pill" style="background: ${color}; color: #ffffff; font-size: 0.9rem;">

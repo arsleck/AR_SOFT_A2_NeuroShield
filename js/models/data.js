@@ -15,6 +15,7 @@ const AppModel = {
             "Ing. Social": 45
         },
         progresoCursos: {}, // { [id_curso]: { completado: true, puntaje_quiz: 100 } }
+        fuenteRiesgo: null, // de dónde sale el riesgo por vector: 'red_neuronal' | 'reglas' | 'diagnostico' | null (sin datos)
         diagnosticoCompletado: false,
         nivelConocimiento: "Sin evaluar",
         recomendacionesActuales: [
@@ -288,9 +289,14 @@ const AppModel = {
         if (!ia || !ia.disponible) return false;
 
         const nivelTexto = { Alto: 'alta', Medio: 'media', Bajo: 'baja' }[ia.nivel] || ia.nivel;
+        const fuente = ia.fuente || 'red_neuronal';
         this.estadoUsuario.riesgoActual = ia.puntaje;
-        this.estadoUsuario.riesgoPorVector = { ...this.estadoUsuario.riesgoPorVector, ...(ia.riesgo_por_vector || {}) };
-        this.estadoUsuario.nivelConocimiento = `Vulnerabilidad ${nivelTexto} (estimada por IA)`;
+        // Se reemplaza por completo: un vector sin datos queda en null, nunca con un valor de ejemplo
+        this.estadoUsuario.riesgoPorVector = { Phishing: null, Smishing: null, Vishing: null, 'Ing. Social': null, ...(ia.riesgo_por_vector || {}) };
+        this.estadoUsuario.fuenteRiesgo = fuente;
+        this.estadoUsuario.nivelConocimiento = fuente === 'reglas'
+            ? `Vulnerabilidad ${nivelTexto} (calculada con tu historial)`
+            : `Vulnerabilidad ${nivelTexto} (estimada por IA)`;
         if (Array.isArray(ia.recomendaciones) && ia.recomendaciones.length > 0) {
             this.estadoUsuario.recomendacionesActuales = ia.recomendaciones;
         }
@@ -324,6 +330,10 @@ const AppModel = {
 
         this.estadoUsuario.riesgoActual = promedio;
         this.estadoUsuario.diagnosticoCompletado = true;
+        // El diagnóstico solo es la fuente mientras no exista un análisis con actividad real
+        if (!this.estadoUsuario.analisisIA || !this.estadoUsuario.analisisIA.disponible) {
+            this.estadoUsuario.fuenteRiesgo = 'diagnostico';
+        }
 
         const recomendaciones = [];
         if (promedio >= 60) {
@@ -408,7 +418,7 @@ const AppModel = {
         const valorActualVector = this.estadoUsuario.riesgoPorVector[vector] ?? 50;
         this.estadoUsuario.riesgoPorVector[vector] = Math.max(10, Math.min(95, valorActualVector + impacto));
 
-        const valores = Object.values(this.estadoUsuario.riesgoPorVector);
+        const valores = Object.values(this.estadoUsuario.riesgoPorVector).filter(v => typeof v === 'number'); // sin contar vectores sin datos
         this.estadoUsuario.riesgoActual = Math.round(valores.reduce((a, b) => a + b, 0) / valores.length);
 
         this.ultimoResultadoSimulacion = {
