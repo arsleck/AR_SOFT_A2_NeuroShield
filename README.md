@@ -150,6 +150,8 @@ La página de simuladores sigue la organización de un LMS (como Canvas):
 
 El panel administrativo sigue la vista del docente en un LMS: un menú lateral con cinco secciones y tablas con sus acciones.
 
+Cursos y misiones se crean y editan en un **editor por pasos**: Datos generales, Contenido, Módulos adicionales, Examen y Revisar en los cursos, y Datos generales, Mensaje del ataque, Pistas forenses y Revisar en las misiones. Cada paso explica qué va en él y valida sus campos antes de avanzar. Si al publicar falta algo, el editor abre el paso donde está. El paso de revisión muestra una lista de verificación y una vista previa de lo que verá el estudiante. En los borradores sugeridos por la IA, un recuadro explica por qué se propone ese contenido: estudiantes analizados, riesgo por vector y nivel elegido.
+
 - **Cursos:** creación, edición y eliminación de cursos, módulos y preguntas de evaluación, y sugerencia de cursos con IA.
 - **Simuladores:** administración de escenarios, remitentes y pistas forenses, y sugerencia de misiones con IA.
 - **Personas:** consulta de usuarios, modificación de roles y asignación de grupos.
@@ -211,6 +213,7 @@ AR_SOFT_A2_NeuroShield/
 ├── js/
 │   ├── components/
 │   │   ├── analisisIA.js
+│   │   ├── editorPasos.js
 │   │   ├── sidebar.js
 │   │   ├── topbar.js
 │   │   └── tutorial.js
