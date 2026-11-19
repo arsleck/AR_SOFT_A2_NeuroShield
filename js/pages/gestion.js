@@ -1,55 +1,80 @@
+// === PANEL DEL ADMINISTRADOR (#/gestion) ===
+// Organización tipo LMS desde la perspectiva del docente: navegación lateral del curso
+// (Cursos, Simuladores, Personas, Grupos, Calificaciones), tablas con acciones y un libro
+// de calificaciones con el riesgo que estima la red neuronal para cada estudiante.
+
 const GestionPage = {
-    tabActiva: 'cursos', // 'cursos' | 'simuladores' | 'usuarios' | 'grupos'
+    tabActiva: 'cursos', // 'cursos' | 'simuladores' | 'usuarios' | 'grupos' | 'calificaciones'
+    filtroGrupoLibro: '',
+
+    VECTORES: ['Phishing', 'Smishing', 'Vishing', 'Ing. Social'],
+
+    chipOrigen: function(origen) {
+        const valor = origen || 'Sistema';
+        return valor === 'Servicio IA'
+            ? '<span class="cv-chip cv-chip-ia"><i class="fa-solid fa-brain"></i> Servicio IA</span>'
+            : `<span class="cv-chip">${valor}</span>`;
+    },
+
+    selectorGrupos: function(id, titulo) {
+        return `
+            <select id="${id}" class="cv-select" title="${titulo}">
+                <option value="">Todos los usuarios</option>
+                ${(AppModel.listaGruposAdmin || []).map(g => `<option value="${g.id_grupo}">${g.nombre_grupo}</option>`).join('')}
+            </select>`;
+    },
+
+    encabezado: function(titulo, descripcion, acciones = '') {
+        return `
+            <header class="cv-page-header" style="margin-bottom: 1.25rem;">
+                <div>
+                    <h1>${titulo}</h1>
+                    <p>${descripcion}</p>
+                </div>
+                <div class="cv-acciones">${acciones}</div>
+            </header>`;
+    },
 
     renderTablaCursos: function() {
         const cursos = AppModel.catalogoCursos || [];
         return `
-        <div class="card" style="overflow-x: auto;">
-            <div class="flex-between mb-3" style="flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <h3><i class="fa-solid fa-book-open text-primary me-1"></i> Catálogo de Cursos en Base de Datos</h3>
-                    <p class="text-muted" style="font-size: 0.85rem;">Crea nuevos cursos multimedia o modifica los existentes.</p>
-                </div>
-                <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
-                    <select id="select-grupo-ia" class="form-input" style="width: auto; padding: 0.55rem 0.7rem; font-size: 0.85rem;" title="Usuarios que analizará la IA">
-                        <option value="">Todos los usuarios</option>
-                        ${(AppModel.listaGruposAdmin || []).map(g => `<option value="${g.id_grupo}">${g.nombre_grupo}</option>`).join('')}
-                    </select>
-                    <button type="button" id="btn-sugerir-curso-ia" class="btn-cisco-outline" title="La red neuronal analiza el desempeño y propone un curso con su examen">
-                        <i class="fa-solid fa-brain"></i> Sugerir Curso con IA
-                    </button>
-                    <button type="button" id="btn-nuevo-curso" class="btn-cisco-primary">
-                        <i class="fa-solid fa-plus"></i> Crear Nuevo Curso
-                    </button>
-                </div>
-            </div>
+        ${this.encabezado('Cursos', 'Microcursos con módulos teóricos, recursos multimedia y examen. La IA puede proponer un borrador según el vector más débil del grupo.', `
+            ${this.selectorGrupos('select-grupo-ia', 'Usuarios que analizará la IA')}
+            <button type="button" id="btn-sugerir-curso-ia" class="cv-btn" title="La red neuronal analiza el desempeño y propone un curso con su examen">
+                <i class="fa-solid fa-brain"></i> Sugerir curso con IA
+            </button>
+            <button type="button" id="btn-nuevo-curso" class="cv-btn cv-btn-primario">
+                <i class="fa-solid fa-plus"></i> Curso
+            </button>`)}
 
-            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+        <div class="cv-tabla-marco">
+            <table class="cv-tabla">
                 <thead>
-                    <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
-                        <th style="padding: 0.75rem;">ID</th>
-                        <th style="padding: 0.75rem;">Título del Curso</th>
-                        <th style="padding: 0.75rem;">Vector</th>
-                        <th style="padding: 0.75rem;">Nivel</th>
-                        <th style="padding: 0.75rem;">Duración</th>
-                        <th style="padding: 0.75rem;">Origen</th>
-                        <th style="padding: 0.75rem; text-align: center;">Acciones</th>
+                    <tr>
+                        <th>Curso</th>
+                        <th>Vector</th>
+                        <th>Nivel</th>
+                        <th>Contenido</th>
+                        <th>Origen</th>
+                        <th style="text-align: right;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${cursos.map(c => `
-                        <tr style="border-bottom: 1px solid var(--border);">
-                            <td style="padding: 0.85rem; font-weight: 700;">#${c.id_curso}</td>
-                            <td style="padding: 0.85rem; font-weight: 700; color: var(--cisco-dark);">${c.titulo}</td>
-                            <td style="padding: 0.85rem;"><span class="badge-pill">${c.categoria}</span></td>
-                            <td style="padding: 0.85rem;">${c.nivel || 'Básico'}</td>
-                            <td style="padding: 0.85rem;">${c.duracion || '5 min'}</td>
-                            <td style="padding: 0.85rem;"><span class="badge-soft">${c.origen || 'Sistema'}</span></td>
-                            <td style="padding: 0.85rem; text-align: center; display: flex; gap: 0.5rem; justify-content: center;">
-                                <button type="button" class="btn btn-editar-curso" data-curso-id="${c.id_curso}" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                    ${cursos.length === 0 ? '<tr><td colspan="6" class="cv-secundario">No hay cursos publicados.</td></tr>' : cursos.map(c => `
+                        <tr>
+                            <td>
+                                <div class="cv-principal">${c.titulo}</div>
+                                <div class="cv-secundario">#${c.id_curso} · ${c.duracion || ''}</div>
+                            </td>
+                            <td><span class="cv-chip"><i class="fa-solid ${MisionesPage.metaDeVector(c.categoria).icono}"></i> ${c.categoria}</span></td>
+                            <td>${c.nivel || 'Básico'}</td>
+                            <td class="cv-secundario">${(c.materiales || []).length} módulos · ${(c.quizzes || []).length} preguntas</td>
+                            <td>${this.chipOrigen(c.origen)}</td>
+                            <td class="cv-celda-acciones">
+                                <button type="button" class="cv-btn btn-editar-curso" data-curso-id="${c.id_curso}">
                                     <i class="fa-solid fa-pen-to-square"></i> Editar
                                 </button>
-                                <button type="button" class="btn btn-danger btn-eliminar-curso" data-curso-id="${c.id_curso}" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                <button type="button" class="cv-btn cv-btn-icono cv-peligro btn-eliminar-curso" data-curso-id="${c.id_curso}" title="Eliminar curso" aria-label="Eliminar curso ${c.titulo}">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </td>
@@ -62,57 +87,52 @@ const GestionPage = {
     },
 
     renderTablaSimuladores: function() {
-        const misiones = AppModel.catalogoMisiones || [];
-        return `
-        <div class="card" style="overflow-x: auto;">
-            <div class="flex-between mb-3" style="flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <h3><i class="fa-solid fa-crosshairs text-primary me-1"></i> Escenarios de Simulación por Tipo de Ataque</h3>
-                    <p class="text-muted" style="font-size: 0.85rem;">Añade múltiples ejemplos de Phishing, Smishing, Vishing e Ingeniería Social, o modifica sus textos, remitentes y pistas forenses.</p>
-                </div>
-                <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
-                    <select id="select-grupo-ia-mision" class="form-input" style="width: auto; padding: 0.55rem 0.7rem; font-size: 0.85rem;" title="Usuarios que analizará la IA">
-                        <option value="">Todos los usuarios</option>
-                        ${(AppModel.listaGruposAdmin || []).map(g => `<option value="${g.id_grupo}">${g.nombre_grupo}</option>`).join('')}
-                    </select>
-                    <button type="button" id="btn-sugerir-mision-ia" class="btn-cisco-outline" title="La red neuronal analiza el desempeño y propone un escenario de simulación">
-                        <i class="fa-solid fa-brain"></i> Sugerir Misión con IA
-                    </button>
-                    <button type="button" id="btn-nueva-mision" class="btn-cisco-primary">
-                        <i class="fa-solid fa-plus"></i> Crear Escenario de Ataque
-                    </button>
-                </div>
-            </div>
+        const misiones = (AppModel.catalogoMisiones || []).slice().sort((a, b) =>
+            this.VECTORES.indexOf(a.vector) - this.VECTORES.indexOf(b.vector) ||
+            (MisionesPage.ordenDificultad[a.dificultad] ?? 9) - (MisionesPage.ordenDificultad[b.dificultad] ?? 9) ||
+            a.id_mision - b.id_mision);
 
-            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+        return `
+        ${this.encabezado('Simuladores', 'Escenarios de ataque por vector. Los estudiantes los ven como módulos y pueden practicar cada uno en las 5 dinámicas.', `
+            ${this.selectorGrupos('select-grupo-ia-mision', 'Usuarios que analizará la IA')}
+            <button type="button" id="btn-sugerir-mision-ia" class="cv-btn" title="La red neuronal analiza el desempeño y propone un escenario de simulación">
+                <i class="fa-solid fa-brain"></i> Sugerir misión con IA
+            </button>
+            <button type="button" id="btn-nueva-mision" class="cv-btn cv-btn-primario">
+                <i class="fa-solid fa-plus"></i> Misión
+            </button>`)}
+
+        <div class="cv-tabla-marco">
+            <table class="cv-tabla">
                 <thead>
-                    <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
-                        <th style="padding: 0.75rem;">ID</th>
-                        <th style="padding: 0.75rem;">Título del Escenario</th>
-                        <th style="padding: 0.75rem;">Vector</th>
-                        <th style="padding: 0.75rem;">Remitente Simulado</th>
-                        <th style="padding: 0.75rem;">Tiempo</th>
-                        <th style="padding: 0.75rem;">Origen</th>
-                        <th style="padding: 0.75rem; text-align: center;">Acciones</th>
+                    <tr>
+                        <th>Misión</th>
+                        <th>Módulo</th>
+                        <th>Dificultad</th>
+                        <th>Remitente simulado</th>
+                        <th>Origen</th>
+                        <th style="text-align: right;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${misiones.map(m => `
-                        <tr style="border-bottom: 1px solid var(--border);">
-                            <td style="padding: 0.85rem; font-weight: 700;">#${m.id_mision}</td>
-                            <td style="padding: 0.85rem; font-weight: 700; color: var(--cisco-dark);">${m.titulo}</td>
-                            <td style="padding: 0.85rem;"><span class="badge-pill">${m.vector}</span></td>
-                            <td style="padding: 0.85rem;">
-                                <div style="font-weight: 600;">${m.remitente_nombre}</div>
-                                <div class="text-muted" style="font-size: 0.76rem;">${m.remitente_identificador}</div>
+                    ${misiones.length === 0 ? '<tr><td colspan="6" class="cv-secundario">No hay misiones publicadas.</td></tr>' : misiones.map(m => `
+                        <tr>
+                            <td>
+                                <div class="cv-principal">${m.titulo}</div>
+                                <div class="cv-secundario cv-truncar" style="max-width: 260px;" title="${(m.descripcion_corta || '').replace(/"/g, '&quot;')}">#${m.id_mision} · ${m.descripcion_corta || ''}</div>
                             </td>
-                            <td style="padding: 0.85rem;">${m.tiempo_limite || 120}s (${m.dificultad})</td>
-                            <td style="padding: 0.85rem;"><span class="badge-soft">${m.origen || 'Sistema'}</span></td>
-                            <td style="padding: 0.85rem; text-align: center; display: flex; gap: 0.5rem; justify-content: center;">
-                                <button type="button" class="btn btn-editar-mision" data-mision-id="${m.id_mision}" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                            <td><span class="cv-chip"><i class="fa-solid ${MisionesPage.metaDeVector(m.vector).icono}"></i> ${m.vector}</span></td>
+                            <td class="cv-nowrap">${m.dificultad || 'Básico'}<div class="cv-secundario">${m.tiempo_limite || 120} s</div></td>
+                            <td>
+                                <div class="cv-truncar" style="max-width: 190px;" title="${(m.remitente_nombre || '').replace(/"/g, '&quot;')}">${m.remitente_nombre}</div>
+                                <div class="cv-secundario cv-truncar" style="max-width: 190px;" title="${(m.remitente_identificador || '').replace(/"/g, '&quot;')}">${m.remitente_identificador}</div>
+                            </td>
+                            <td>${this.chipOrigen(m.origen)}</td>
+                            <td class="cv-celda-acciones">
+                                <button type="button" class="cv-btn btn-editar-mision" data-mision-id="${m.id_mision}">
                                     <i class="fa-solid fa-pen-to-square"></i> Editar
                                 </button>
-                                <button type="button" class="btn btn-danger btn-eliminar-mision" data-mision-id="${m.id_mision}" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                <button type="button" class="cv-btn cv-btn-icono cv-peligro btn-eliminar-mision" data-mision-id="${m.id_mision}" title="Eliminar misión" aria-label="Eliminar misión ${m.titulo}">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </td>
@@ -129,57 +149,51 @@ const GestionPage = {
         const grupos = AppModel.listaGruposAdmin || [];
 
         return `
-        <div class="card" style="overflow-x: auto;">
-            <div class="mb-3">
-                <h3><i class="fa-solid fa-users-gear text-primary me-1"></i> Directorio de Usuarios y Asignación de Roles</h3>
-                <p class="text-muted" style="font-size: 0.85rem;">Asigna usuarios a un grupo de capacitación o modifica sus permisos de acceso.</p>
-            </div>
+        ${this.encabezado('Personas', 'Asigna a cada persona un rol y un grupo de capacitación. La vulnerabilidad es la última estimada por la red neuronal.')}
 
-            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+        <div class="cv-tabla-marco">
+            <table class="cv-tabla">
                 <thead>
-                    <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
-                        <th style="padding: 0.75rem;">ID</th>
-                        <th style="padding: 0.75rem;">Nombre y Correo</th>
-                        <th style="padding: 0.75rem;">Vulnerabilidad</th>
-                        <th style="padding: 0.75rem;">Rol del Sistema</th>
-                        <th style="padding: 0.75rem;">Grupo Asignado</th>
-                        <th style="padding: 0.75rem; text-align: center;">Guardar</th>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Vulnerabilidad</th>
+                        <th>Rol</th>
+                        <th>Grupo</th>
+                        <th style="text-align: right;">Guardar</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${usuarios.map(u => `
-                        <tr style="border-bottom: 1px solid var(--border);">
-                            <td style="padding: 0.85rem; font-weight: 700;">#${u.id_usuario}</td>
-                            <td style="padding: 0.85rem;">
-                                <div style="font-weight: 700; color: var(--text-main);">${u.nombre}</div>
-                                <div class="text-muted" style="font-size: 0.78rem;">${u.correo}</div>
+                    ${usuarios.map(u => {
+                        const v = u.nivel_vulnerabilidad;
+                        const clase = v >= 60 ? 'cv-chip-alto' : v >= 40 ? 'cv-chip-medio' : 'cv-chip-bajo';
+                        return `
+                        <tr>
+                            <td>
+                                <div class="cv-principal">${u.nombre}</div>
+                                <div class="cv-secundario">${u.correo}</div>
                             </td>
-                            <td style="padding: 0.85rem;">
-                                <span class="badge-pill" style="background: ${u.nivel_vulnerabilidad >= 60 ? 'var(--danger-bg)' : 'var(--cisco-green-bg)'}; color: ${u.nivel_vulnerabilidad >= 60 ? '#991b1b' : '#2b5917'};">
-                                    ${u.nivel_vulnerabilidad}%
-                                </span>
-                            </td>
-                            <td style="padding: 0.85rem;">
-                                <select class="form-input select-rol-usuario" data-user-id="${u.id_usuario}" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
+                            <td><span class="cv-chip ${clase}">${v}%</span></td>
+                            <td>
+                                <select class="cv-select select-rol-usuario" data-user-id="${u.id_usuario}" aria-label="Rol de ${u.nombre}">
                                     <option value="Estudiante" ${u.rol === 'Estudiante' ? 'selected' : ''}>Estudiante</option>
                                     <option value="Administrador" ${u.rol === 'Administrador' ? 'selected' : ''}>Administrador</option>
                                 </select>
                             </td>
-                            <td style="padding: 0.85rem;">
-                                <select class="form-input select-grupo-usuario" data-user-id="${u.id_usuario}" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
-                                    <option value="">-- Sin grupo asignado --</option>
+                            <td>
+                                <select class="cv-select select-grupo-usuario" data-user-id="${u.id_usuario}" aria-label="Grupo de ${u.nombre}">
+                                    <option value="">Sin grupo</option>
                                     ${grupos.map(g => `
                                         <option value="${g.id_grupo}" ${u.id_grupo === g.id_grupo ? 'selected' : ''}>${g.nombre_grupo}</option>
                                     `).join('')}
                                 </select>
                             </td>
-                            <td style="padding: 0.85rem; text-align: center;">
-                                <button type="button" class="btn-cisco-primary btn-guardar-usuario-admin" data-user-id="${u.id_usuario}" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;">
+                            <td class="cv-celda-acciones">
+                                <button type="button" class="cv-btn btn-guardar-usuario-admin" data-user-id="${u.id_usuario}">
                                     <i class="fa-solid fa-floppy-disk"></i> Aplicar
                                 </button>
                             </td>
-                        </tr>
-                    `).join('')}
+                        </tr>`;
+                    }).join('')}
                 </tbody>
             </table>
         </div>
@@ -190,90 +204,189 @@ const GestionPage = {
         const grupos = AppModel.listaGruposAdmin || [];
 
         return `
-        <div class="profile-layout-grid">
-            <div class="card">
-                <h3 class="mb-2"><i class="fa-solid fa-folder-plus text-primary me-1"></i> Crear Nuevo Grupo</h3>
-                <p class="text-muted mb-3" style="font-size: 0.85rem;">
-                    Organiza a los estudiantes o colaboradores por carrera, semestre o área corporativa.
-                </p>
+        ${this.encabezado('Grupos', 'Organiza a los estudiantes por carrera, semestre o área. Las sugerencias de la IA se pueden calcular por grupo.')}
 
+        <div class="cv-con-lateral" style="grid-template-columns: minmax(0, 1fr) 320px;">
+            <div class="cv-tabla-marco">
+                <table class="cv-tabla">
+                    <thead>
+                        <tr>
+                            <th>Grupo</th>
+                            <th>Miembros</th>
+                            <th>Riesgo promedio</th>
+                            <th style="text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${grupos.length === 0 ? '<tr><td colspan="4" class="cv-secundario">No hay grupos creados todavía.</td></tr>' : grupos.map(g => `
+                            <tr>
+                                <td>
+                                    <div class="cv-principal">${g.nombre_grupo}</div>
+                                    <div class="cv-secundario">${g.descripcion || 'Sin descripción registrada.'}</div>
+                                </td>
+                                <td>${g.total_usuarios || 0}</td>
+                                <td>${g.riesgo_promedio || 0}%</td>
+                                <td class="cv-celda-acciones">
+                                    <button type="button" class="cv-btn cv-btn-icono cv-peligro btn-eliminar-grupo" data-grupo-id="${g.id_grupo}" title="Eliminar grupo" aria-label="Eliminar grupo ${g.nombre_grupo}">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="cv-panel">
+                <h3><i class="fa-solid fa-folder-plus"></i> Nuevo grupo</h3>
                 <form id="form-crear-grupo">
                     <div class="form-group">
-                        <label>Nombre del Grupo o Área</label>
+                        <label for="grupo-nombre">Nombre del grupo o área</label>
                         <input type="text" id="grupo-nombre" class="form-input" placeholder="Ej: Ingeniería de Software - Semestre V" required minlength="3">
                     </div>
                     <div class="form-group">
-                        <label>Descripción / Objetivo de Capacitación</label>
+                        <label for="grupo-desc">Objetivo de capacitación</label>
                         <textarea id="grupo-desc" class="form-input" rows="3" placeholder="Describe el enfoque de entrenamiento para este grupo..."></textarea>
                     </div>
-                    <button type="submit" class="btn-cisco-primary w-100" style="justify-content: center;">
-                        <i class="fa-solid fa-plus"></i> Crear Grupo
+                    <button type="submit" class="cv-btn cv-btn-primario" style="width: 100%; justify-content: center;">
+                        <i class="fa-solid fa-plus"></i> Crear grupo
                     </button>
                 </form>
-            </div>
-
-            <div class="card">
-                <h3 class="mb-3"><i class="fa-solid fa-layer-group text-primary me-1"></i> Grupos Activos (${grupos.length})</h3>
-                <div style="display: grid; gap: 0.9rem;">
-                    ${grupos.length > 0 ? grupos.map(g => `
-                        <div style="border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem; background: var(--bg-main); display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
-                            <div>
-                                <div style="display: flex; align-items: center; gap: 0.6rem;">
-                                    <h4 style="font-size: 1rem; font-weight: 800; color: var(--cisco-dark);">${g.nombre_grupo}</h4>
-                                    <span class="badge-pill"><i class="fa-solid fa-users"></i> ${g.total_usuarios || 0} miembros</span>
-                                    <span class="badge-soft">Riesgo Promedio: ${g.riesgo_promedio || 0}%</span>
-                                </div>
-                                <p class="text-muted mt-1" style="font-size: 0.84rem;">${g.descripcion || 'Sin descripción registrada.'}</p>
-                            </div>
-                            <button type="button" class="btn btn-danger btn-eliminar-grupo" data-grupo-id="${g.id_grupo}" style="padding: 0.45rem 0.75rem;" title="Eliminar grupo">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    `).join('') : `<p class="text-muted">No hay grupos creados todavía.</p>`}
-                </div>
             </div>
         </div>
         `;
     },
 
-    render: function() {
-        let contenidoTab = '';
-        if (this.tabActiva === 'cursos') contenidoTab = this.renderTablaCursos();
-        else if (this.tabActiva === 'simuladores') contenidoTab = this.renderTablaSimuladores();
-        else if (this.tabActiva === 'usuarios') contenidoTab = this.renderTablaUsuarios();
-        else if (this.tabActiva === 'grupos') contenidoTab = this.renderSeccionGrupos();
+    claseNota: function(valor) {
+        if (valor === undefined || valor === null) return 'cv-nota-vacia';
+        return valor >= 60 ? 'cv-nota-alto' : valor >= 40 ? 'cv-nota-medio' : 'cv-nota-bajo';
+    },
+
+    filasLibro: function() {
+        const filtro = this.filtroGrupoLibro;
+        return (AppModel.libroCalificaciones || []).filter(f => !filtro || String(f.id_grupo) === String(filtro));
+    },
+
+    renderCalificaciones: function() {
+        const filas = this.filasLibro();
+        const conAnalisis = filas.filter(f => f.puntaje !== null && f.puntaje !== undefined);
+        const promedio = (valores) => valores.length ? Math.round(valores.reduce((a, b) => a + b, 0) / valores.length) : null;
+        const nota = (valor, sinPractica) => valor === undefined || valor === null
+            ? '<span class="cv-nota cv-nota-vacia">—</span>'
+            : `<span class="cv-nota ${this.claseNota(valor)} ${sinPractica ? 'cv-nota-sp' : ''}" title="${sinPractica ? 'Sin práctica en este vector: la red solo puede suponer el valor' : 'Riesgo estimado por la red'}">${valor}%</span>`;
 
         return `
-        <section id="gestion" class="view-section active">
-            <div class="learning-hero mb-4">
-                <div>
-                    <span class="badge-pill">
-                        <i class="fa-solid fa-user-shield"></i> Acceso Exclusivo Administrador
-                    </span>
-                    <h1 style="font-size: 1.8rem; font-weight: 800; margin-top: 0.5rem;">Centro de Administración NeuroShield</h1>
-                    <p class="text-muted mt-1" style="max-width: 760px; line-height: 1.5;">
-                        Gestiona el catálogo de cursos, personaliza los escenarios de simulación de ataques, administra usuarios y organiza grupos de entrenamiento.
-                    </p>
-                </div>
-            </div>
+        ${this.encabezado('Calificaciones', 'Riesgo estimado por la red neuronal para cada estudiante y vector, a partir de su último análisis. Más bajo es mejor.', `
+            <select id="filtro-grupo-libro" class="cv-select" title="Filtrar por grupo">
+                <option value="">Todos los grupos</option>
+                ${(AppModel.listaGruposAdmin || []).map(g => `<option value="${g.id_grupo}" ${String(this.filtroGrupoLibro) === String(g.id_grupo) ? 'selected' : ''}>${g.nombre_grupo}</option>`).join('')}
+            </select>
+            <button type="button" id="btn-exportar-libro" class="cv-btn"><i class="fa-solid fa-file-csv"></i> Exportar CSV</button>`)}
 
-            <!-- 4 Pestañas de Navegación del Administrador -->
-            <div class="cisco-tabs-bar mb-4" style="gap: 0.75rem; flex-wrap: wrap;">
-                <button type="button" class="btn btn-tab-admin ${this.tabActiva === 'cursos' ? 'btn-cisco-primary' : ''}" data-tab="cursos">
-                    <i class="fa-solid fa-book-open"></i> Cursos (${(AppModel.catalogoCursos || []).length})
-                </button>
-                <button type="button" class="btn btn-tab-admin ${this.tabActiva === 'simuladores' ? 'btn-cisco-primary' : ''}" data-tab="simuladores">
-                    <i class="fa-solid fa-crosshairs"></i> Simuladores / Ataques (${(AppModel.catalogoMisiones || []).length})
-                </button>
-                <button type="button" class="btn btn-tab-admin ${this.tabActiva === 'usuarios' ? 'btn-cisco-primary' : ''}" data-tab="usuarios">
-                    <i class="fa-solid fa-users-gear"></i> Usuarios (${(AppModel.listaUsuariosAdmin || []).length})
-                </button>
-                <button type="button" class="btn btn-tab-admin ${this.tabActiva === 'grupos' ? 'btn-cisco-primary' : ''}" data-tab="grupos">
-                    <i class="fa-solid fa-layer-group"></i> Grupos (${(AppModel.listaGruposAdmin || []).length})
-                </button>
+        <div class="cv-tabla-marco">
+            <table class="cv-tabla cv-libro">
+                <thead>
+                    <tr>
+                        <th>Estudiante</th>
+                        ${this.VECTORES.map(v => `<th class="cv-col-num">${v}</th>`).join('')}
+                        <th class="cv-col-num">Global</th>
+                        <th>Refuerzo sugerido por la red</th>
+                        <th class="cv-col-num">Simulaciones</th>
+                        <th class="cv-col-num">Cursos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filas.length === 0 ? `<tr><td colspan="${this.VECTORES.length + 5}" class="cv-secundario">No hay estudiantes en este grupo.</td></tr>` : filas.map(f => {
+                        const riesgo = f.riesgo_por_vector || {};
+                        const sinPractica = Array.isArray(f.vectores_sin_practica) ? f.vectores_sin_practica : [];
+                        const refuerzos = Array.isArray(f.refuerzos) ? f.refuerzos : [];
+                        return `
+                        <tr>
+                            <td>
+                                <div class="cv-principal">${f.nombre}</div>
+                                <div class="cv-secundario">${f.nombre_grupo || 'Sin grupo'} · ${f.fecha_analisis ? 'análisis ' + new Date(f.fecha_analisis).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }) : 'sin análisis'}</div>
+                            </td>
+                            ${this.VECTORES.map(v => `<td class="cv-col-num">${nota(riesgo[v], sinPractica.includes(v))}</td>`).join('')}
+                            <td class="cv-col-num">${nota(f.puntaje, false)}</td>
+                            <td style="max-width: 190px;">${refuerzos.length ? refuerzos.map(r => `<span class="cv-chip cv-chip-ia" title="Confianza ${r.confianza}" style="margin: 2px;">${(AnalisisIAComponent.REFUERZOS[r.tipo] || {}).titulo || r.tipo}</span>`).join('') : '<span class="cv-secundario">—</span>'}</td>
+                            <td class="cv-col-num cv-nowrap" title="Simulaciones realizadas y cuántas terminaron reportando la amenaza">${f.simulaciones} <span class="cv-secundario">(${f.simulaciones_reportadas} rep.)</span></td>
+                            <td class="cv-col-num" title="Cursos aprobados">${f.cursos_aprobados}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+                ${conAnalisis.length > 0 ? `
+                <tfoot>
+                    <tr>
+                        <td>Promedio (${conAnalisis.length} con análisis)</td>
+                        ${this.VECTORES.map(v => `<td class="cv-col-num">${nota(promedio(conAnalisis.map(f => (f.riesgo_por_vector || {})[v]).filter(x => typeof x === 'number')), false)}</td>`).join('')}
+                        <td class="cv-col-num">${nota(promedio(conAnalisis.map(f => f.puntaje)), false)}</td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tfoot>` : ''}
+            </table>
+            <div class="cv-leyenda">
+                <span><i class="cv-muestra" style="background: #dcfce7;"></i> Bajo (menos de 40 %)</span>
+                <span><i class="cv-muestra" style="background: #fef3c7;"></i> Medio (40 a 59 %)</span>
+                <span><i class="cv-muestra" style="background: #fee2e2;"></i> Alto (60 % o más)</span>
+                <span><i class="cv-muestra" style="background: #dcfce7; opacity: 0.55;"></i> Atenuado: vector sin práctica, valor supuesto por la red</span>
             </div>
+        </div>
+        `;
+    },
 
-            ${contenidoTab}
+    // CSV del libro de calificaciones con el filtro actual
+    generarCSV: function() {
+        const encabezado = ['Estudiante', 'Correo', 'Grupo', ...this.VECTORES, 'Global', 'Nivel', 'Refuerzos', 'Simulaciones', 'Reportadas', 'Cursos aprobados', 'Ultimo analisis'];
+        const celda = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+        const filas = this.filasLibro().map(f => [
+            f.nombre, f.correo, f.nombre_grupo || '',
+            ...this.VECTORES.map(v => (f.riesgo_por_vector || {})[v] ?? ''),
+            f.puntaje ?? '', f.nivel || '',
+            (f.refuerzos || []).map(r => (AnalisisIAComponent.REFUERZOS[r.tipo] || {}).titulo || r.tipo).join(' | '),
+            f.simulaciones, f.simulaciones_reportadas, f.cursos_aprobados,
+            f.fecha_analisis ? new Date(f.fecha_analisis).toISOString().slice(0, 10) : ''
+        ]);
+        return [encabezado, ...filas].map(fila => fila.map(celda).join(',')).join('\r\n');
+    },
+
+    render: function() {
+        const secciones = [
+            { id: 'cursos', icono: 'fa-book-open', texto: 'Cursos', conteo: (AppModel.catalogoCursos || []).length },
+            { id: 'simuladores', icono: 'fa-crosshairs', texto: 'Simuladores', conteo: (AppModel.catalogoMisiones || []).length },
+            { id: 'usuarios', icono: 'fa-users', texto: 'Personas', conteo: (AppModel.listaUsuariosAdmin || []).length },
+            { id: 'grupos', icono: 'fa-layer-group', texto: 'Grupos', conteo: (AppModel.listaGruposAdmin || []).length },
+            { id: 'calificaciones', icono: 'fa-table-cells', texto: 'Calificaciones', conteo: (AppModel.libroCalificaciones || []).length }
+        ];
+        const activa = secciones.find(s => s.id === this.tabActiva) || secciones[0];
+
+        let contenidoTab = '';
+        if (activa.id === 'cursos') contenidoTab = this.renderTablaCursos();
+        else if (activa.id === 'simuladores') contenidoTab = this.renderTablaSimuladores();
+        else if (activa.id === 'usuarios') contenidoTab = this.renderTablaUsuarios();
+        else if (activa.id === 'grupos') contenidoTab = this.renderSeccionGrupos();
+        else contenidoTab = this.renderCalificaciones();
+
+        return `
+        <section id="gestion" class="view-section active cv-page">
+            <nav class="cv-breadcrumb" aria-label="Ruta">
+                <a href="#/dashboard">NeuroShield</a><i class="fa-solid fa-chevron-right cv-sep"></i>
+                <span>Administración</span><i class="fa-solid fa-chevron-right cv-sep"></i>
+                <span class="cv-actual">${activa.texto}</span>
+            </nav>
+
+            <div class="cv-curso">
+                <nav class="cv-curso-nav" aria-label="Secciones de administración">
+                    <div class="cv-curso-nav-titulo">Administración</div>
+                    ${secciones.map(s => `
+                        <button type="button" class="btn-tab-admin ${s.id === activa.id ? 'cv-activa' : ''}" data-tab="${s.id}" ${s.id === activa.id ? 'aria-current="page"' : ''}>
+                            <span><i class="fa-solid ${s.icono}" style="width: 18px;"></i> ${s.texto}</span>
+                            <span class="cv-conteo">${s.conteo}</span>
+                        </button>
+                    `).join('')}
+                </nav>
+
+                <div>${contenidoTab}</div>
+            </div>
         </section>
         `;
     }
