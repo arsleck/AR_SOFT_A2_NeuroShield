@@ -77,7 +77,7 @@ def health():
         "status": "OK",
         "servicio": "neuroshield-ia",
         "modelo": VERSION_MODELO,
-        "arquitectura": "CNN 1D (Keras)",
+        "arquitectura": "CNN 1D (Keras) con dos salidas: vulnerabilidad por vector y perfil de refuerzo",
         "entrada": {"pasos": MAX_PASOS, "vectores": VECTORES},
         "metricas": predictor.metricas.get("prueba", {}),
     }

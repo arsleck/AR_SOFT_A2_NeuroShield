@@ -25,8 +25,37 @@ def vectores_prioritarios(riesgo_por_vector: dict[str, int],
     return criticos or ordenados[:1]
 
 
+# Texto de cada perfil de refuerzo que decide la red (segunda salida del modelo).
+TEXTOS_REFUERZO = {
+    "teoria": {
+        "icono": "fa-book-open", "color": "text-danger", "titulo": "Refuerzo teórico",
+        "texto": "Repasa la teoría de {vector}: tu riesgo estimado es {riesgo}%. Completa su curso y repite "
+                 "el examen antes de volver al simulador.",
+    },
+    "presion": {
+        "icono": "fa-stopwatch", "color": "text-warning", "titulo": "Entrenar bajo presión",
+        "texto": "Tus decisiones muestran un patrón de respuestas apresuradas. Antes de actuar, revisa el "
+                 "remitente y el destino del enlace; practica una misión de {vector} con tiempo límite.",
+    },
+    "reportar": {
+        "icono": "fa-bullhorn", "color": "text-primary", "titulo": "Pasar de ignorar a reportar",
+        "texto": "Casi nunca reportas los intentos de engaño. Cuando identifiques una amenaza de {vector}, "
+                 "usa \"Reportar\" en lugar de ignorarla: reportar protege a los demás.",
+    },
+    "avanzar": {
+        "icono": "fa-arrow-trend-up", "color": "text-success", "titulo": "Subir de dificultad",
+        "texto": "Dominas los escenarios básicos. Pasa a misiones de dificultad Avanzado para seguir mejorando.",
+    },
+}
+
+
 def recomendaciones_usuario(analisis: dict) -> list[dict]:
-    """Recomendaciones en el formato que ya pinta el perfil: icono, color y texto."""
+    """Recomendaciones en el formato que ya pinta el perfil: icono, color y texto.
+
+    El nivel y el vector salen de la primera salida de la red (vulnerabilidad);
+    el tipo de refuerzo, de la segunda (perfil de refuerzo). Las reglas solo
+    redactan el texto y avisan de los vectores sin práctica, que es un dato observado.
+    """
     riesgo = analisis["riesgo_por_vector"]
     prioritarios = vectores_prioritarios(riesgo, analisis.get("vectores_sin_practica"))
     peor = prioritarios[0]
@@ -51,22 +80,30 @@ def recomendaciones_usuario(analisis: dict) -> list[dict]:
                      f"tu vector con más margen de mejora es {NOMBRES[peor]} ({riesgo[peor]}%).",
         })
 
-    for vector in prioritarios[:2]:
-        if riesgo[vector] >= UMBRAL_ALTO:
-            texto = (f"Empieza por el curso de {NOMBRES[vector]} y repite su examen "
-                     f"antes de volver al simulador.")
-        elif riesgo[vector] >= UMBRAL_MEDIO:
-            texto = (f"Practica una misión de {NOMBRES[vector]} y reporta la amenaza "
-                     f"en lugar de solo ignorarla.")
-        else:
-            continue
-        recomendaciones.append({"icono": "fa-book-open", "color": "text-primary", "texto": texto})
+    for refuerzo in analisis.get("refuerzos", []):
+        plantilla = TEXTOS_REFUERZO[refuerzo["tipo"]]
+        recomendaciones.append({
+            "icono": plantilla["icono"], "color": plantilla["color"],
+            "texto": plantilla["texto"].format(vector=NOMBRES[peor], riesgo=riesgo[peor]),
+            "tipo": refuerzo["tipo"], "titulo": plantilla["titulo"],
+            "origen": "red_neuronal", "confianza": refuerzo["confianza"],
+            "probabilidad": refuerzo["probabilidad"],
+        })
+
+    # Si la red no activó ningún perfil, se sugiere practicar los vectores prioritarios.
+    if not analisis.get("refuerzos"):
+        for vector in prioritarios[:2]:
+            if riesgo[vector] >= UMBRAL_MEDIO:
+                recomendaciones.append({
+                    "icono": "fa-crosshairs", "color": "text-primary",
+                    "texto": f"Practica una misión de {NOMBRES[vector]} para consolidar lo aprendido.",
+                })
 
     sin_practica = analisis.get("vectores_sin_practica", [])
     if sin_practica:
         lista = ", ".join(NOMBRES[v] for v in sin_practica)
         recomendaciones.append({
-            "icono": "fa-crosshairs", "color": "text-primary",
+            "icono": "fa-compass", "color": "text-primary",
             "texto": f"Aún no hay datos tuyos en: {lista}. Completa una misión o un quiz "
                      f"de esos temas para afinar la estimación.",
         })

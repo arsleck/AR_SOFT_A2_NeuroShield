@@ -135,3 +135,42 @@ def test_sugerir_mision_no_repite_escenarios(cliente):
     assert borrador["dificultad_recomendada"] == "Avanzado"
     assert borrador["titulo"] not in titulos and borrador["vector"] == "Vishing"
     assert borrador["patron_tiempo"]["caidas_con_tiempo"] == 0
+
+
+def simulaciones(resultado, tiempo, rondas=3):
+    return [{"tipo": "simulacion", "vector": v, "dificultad": "Intermedio", "resultado": resultado,
+             "tiempo_respuesta": tiempo, "tiempo_limite": 120} for _ in range(rondas) for v in VECTORES]
+
+
+def tipos(datos):
+    return [r["tipo"] for r in datos["refuerzos"]]
+
+
+def test_perfil_refuerzo_en_la_respuesta(cliente):
+    from app.config import REFUERZOS
+    datos = cliente.post("/predict", json={"interacciones": simulaciones("caer", 10)}).json()
+    assert set(datos["perfil_refuerzo"]) == set(REFUERZOS)
+    assert all(0 <= p <= 1 for p in datos["perfil_refuerzo"].values())
+    for r in datos["refuerzos"]:
+        assert r["confianza"] in ("alta", "media")
+
+
+def test_red_detecta_impulsividad_y_falta_de_teoria(cliente):
+    datos = cliente.post("/predict", json={"interacciones": simulaciones("caer", 10)}).json()
+    assert {"presion", "teoria"} <= set(tipos(datos))
+    assert "avanzar" not in tipos(datos)
+    textos = [r for r in datos["recomendaciones"] if r.get("origen") == "red_neuronal"]
+    assert {r["tipo"] for r in textos} == set(tipos(datos))
+
+
+def test_red_detecta_que_no_reporta(cliente):
+    datos = cliente.post("/predict", json={"interacciones": simulaciones("ignorar", 70)}).json()
+    assert "reportar" in tipos(datos)
+    assert "presion" not in tipos(datos)
+
+
+def test_red_sugiere_avanzar_a_quien_domina(cliente):
+    interacciones = simulaciones("reportar", 70) + [
+        {"tipo": "quiz", "vector": v, "dificultad": "Avanzado", "resultado": "correcta"} for v in VECTORES]
+    datos = cliente.post("/predict", json={"interacciones": interacciones}).json()
+    assert tipos(datos) == ["avanzar"]
