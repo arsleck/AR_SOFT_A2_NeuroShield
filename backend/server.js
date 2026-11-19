@@ -913,6 +913,30 @@ app.post('/api/admin/ia/sugerir-curso', verificarToken, soloAdmin, async (req, r
   }
 });
 
+// 5. Libro de calificaciones: último análisis de la red por estudiante (Solo Admin)
+app.get('/api/admin/ia/libro-calificaciones', verificarToken, soloAdmin, async (req, res) => {
+  try {
+    res.json(await analisisIA.libroCalificaciones(pool));
+  } catch (error) {
+    console.error('Error al consultar el libro de calificaciones:', error);
+    res.status(500).json({ error: 'No se pudo consultar el libro de calificaciones' });
+  }
+});
+
+// 6. Estado de las misiones de un usuario (el propio usuario o un administrador)
+app.get('/api/usuarios/:id/historial-misiones', verificarToken, async (req, res) => {
+  const { id } = req.params;
+  if (String(req.usuario.id) !== String(id) && req.usuario.rol !== 'Administrador') {
+    return res.status(403).json({ error: 'No puedes consultar el historial de otro usuario' });
+  }
+  try {
+    res.json(await analisisIA.historialMisiones(pool, id));
+  } catch (error) {
+    console.error('Error al consultar el historial de misiones:', error);
+    res.status(500).json({ error: 'No se pudo consultar el historial de misiones' });
+  }
+});
+
 // 4. Borrador de misión del simulador sugerido por la IA para un grupo o para todos (Solo Admin)
 app.post('/api/admin/ia/sugerir-mision', verificarToken, soloAdmin, async (req, res) => {
   const { id_grupo, vector } = req.body || {};

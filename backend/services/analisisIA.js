@@ -284,11 +284,53 @@ async function sugerirMisionParaGrupo(pool, idGrupo, vector) {
   return { disponible: true, ...sugerencia };
 }
 
+// Libro de calificaciones para el administrador: último análisis de la red por estudiante,
+// con su actividad en simulaciones y cursos.
+async function libroCalificaciones(pool) {
+  const { rows } = await pool.query(
+    `SELECT u.id_usuario, u.nombre, u.correo, u.id_grupo, g.nombre_grupo, u.nivel_vulnerabilidad,
+            a.puntaje, a.nivel, a.riesgo_por_vector, a.refuerzos, a.vectores_sin_practica,
+            a.interacciones_analizadas, a.modelo, a.fecha AS fecha_analisis,
+            (SELECT COUNT(*)::int FROM Historial_Simulaciones h WHERE h.id_usuario = u.id_usuario) AS simulaciones,
+            (SELECT COUNT(*)::int FROM Historial_Simulaciones h
+              WHERE h.id_usuario = u.id_usuario AND h.decision = 'reportar') AS simulaciones_reportadas,
+            (SELECT COUNT(*)::int FROM Progreso_Cursos p
+              WHERE p.id_usuario = u.id_usuario AND p.puntaje_quiz >= 60) AS cursos_aprobados
+     FROM Usuarios u
+     LEFT JOIN Grupos g ON g.id_grupo = u.id_grupo
+     LEFT JOIN LATERAL (
+       SELECT * FROM Analisis_IA a WHERE a.id_usuario = u.id_usuario
+       ORDER BY a.fecha DESC, a.id_analisis DESC LIMIT 1
+     ) a ON TRUE
+     WHERE u.rol = 'Estudiante'
+     ORDER BY u.nombre`
+  );
+  return rows;
+}
+
+// Estado de cada misión para un usuario: intentos, si ya la superó (reportó) y su última decisión.
+async function historialMisiones(pool, idUsuario) {
+  const { rows } = await pool.query(
+    `SELECT id_mision,
+            COUNT(*)::int AS intentos,
+            BOOL_OR(decision = 'reportar') AS superada,
+            (ARRAY_AGG(decision ORDER BY fecha DESC, id_simulacion DESC))[1] AS ultima_decision,
+            MAX(fecha) AS ultima_fecha
+     FROM Historial_Simulaciones
+     WHERE id_usuario = $1
+     GROUP BY id_mision`,
+    [idUsuario]
+  );
+  return rows;
+}
+
 module.exports = {
   asegurarEsquemaIA,
   obtenerHistorial,
   analizarUsuario,
   ultimoAnalisis,
   sugerirCursoParaGrupo,
-  sugerirMisionParaGrupo
+  sugerirMisionParaGrupo,
+  libroCalificaciones,
+  historialMisiones
 };
