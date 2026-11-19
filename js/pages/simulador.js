@@ -503,22 +503,43 @@ const SimuladorPage = {
     render: function() {
         const mision = AppModel.catalogoMisiones.find(m => String(m.id_mision) === String(AppModel.misionActivaId)) || AppModel.catalogoMisiones[0];
         const modos = [
-            { id: 'reaccion', icono: 'fa-bolt', texto: '1. Reacción Táctica' },
-            { id: 'redflags', icono: 'fa-magnifying-glass-location', texto: '2. Cazador Red Flags' },
-            { id: 'urlinspector', icono: 'fa-link-slash', texto: '3. Auditor de URLs' },
-            { id: 'dialogo', icono: 'fa-reply-all', texto: '4. Escudo Diálogo' },
-            { id: 'protocolo', icono: 'fa-list-ol', texto: '5. Protocolo SOC' }
+            { id: 'reaccion', icono: 'fa-bolt', texto: 'Reacción Táctica' },
+            { id: 'redflags', icono: 'fa-magnifying-glass-location', texto: 'Cazador de Red Flags' },
+            { id: 'urlinspector', icono: 'fa-link-slash', texto: 'Inspector de URLs' },
+            { id: 'dialogo', icono: 'fa-reply-all', texto: 'Escudo de Respuesta' },
+            { id: 'protocolo', icono: 'fa-list-ol', texto: 'Protocolo SOC' }
         ];
 
+        // Posición de la misión dentro de su módulo para "Anterior / Siguiente"
+        const modulo = MisionesPage.misionesDeVector(mision.vector);
+        const posicion = modulo.findIndex(m => m.id_mision === mision.id_mision);
+        const anterior = posicion > 0 ? modulo[posicion - 1] : null;
+        const siguiente = posicion >= 0 && posicion < modulo.length - 1 ? modulo[posicion + 1] : null;
+        const meta = MisionesPage.metaDeVector(mision.vector);
+        const estado = MisionesPage.estadoMision(mision.id_mision);
+        const ia = AppModel.estadoUsuario.analisisIA;
+        const recomendada = ia && Array.isArray(ia.misiones_recomendadas)
+            ? ia.misiones_recomendadas.find(m => m.id_mision === mision.id_mision) : null;
+
         return `
-        <section id="simulador" class="view-section active">
-            <div class="flex-between mb-3" style="flex-wrap: wrap; gap: 1rem;">
+        <section id="simulador" class="view-section active cv-page">
+            <nav class="cv-breadcrumb" aria-label="Ruta">
+                <a href="#/dashboard">NeuroShield</a><i class="fa-solid fa-chevron-right cv-sep"></i>
+                <a href="#/misiones">Simuladores</a><i class="fa-solid fa-chevron-right cv-sep"></i>
+                <a href="#/misiones">${meta.titulo}</a><i class="fa-solid fa-chevron-right cv-sep"></i>
+                <span class="cv-actual">${mision.titulo}</span>
+            </nav>
+
+            <div class="cv-sim-cabecera">
                 <div>
-                    <a href="#/misiones" class="btn mb-2" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">
-                        <i class="fa-solid fa-arrow-left"></i> Volver a los 4 Simuladores
-                    </a>
-                    <h2 style="font-size: 1.5rem; font-weight: 800;">${mision.titulo}</h2>
-                    <p class="text-muted">Vector: <strong>${mision.vector}</strong> &bull; Alterna entre las 5 dinámicas de evaluación:</p>
+                    <h1>${mision.titulo}</h1>
+                    <div class="cv-sim-meta">
+                        <span class="cv-chip"><i class="fa-solid ${meta.icono}"></i> ${mision.vector}</span>
+                        <span class="cv-chip"><i class="fa-solid fa-signal"></i> ${mision.dificultad || 'Básico'}</span>
+                        ${posicion >= 0 ? `<span class="cv-chip">Misión ${posicion + 1} de ${modulo.length} del módulo</span>` : ''}
+                        <span class="cv-estado ${estado.clase}"><i class="${estado.icono}"></i> ${estado.texto}</span>
+                        ${recomendada ? `<span class="cv-chip cv-chip-ia"><i class="fa-solid fa-brain"></i> Recomendada por IA: ${AnalisisIAComponent.MODOS[recomendada.modo_sugerido] || 'Simulador'}</span>` : ''}
+                    </div>
                 </div>
                 <div class="timer-box">
                     <i class="fa-solid fa-stopwatch"></i>
@@ -526,20 +547,34 @@ const SimuladorPage = {
                 </div>
             </div>
 
-            <!-- Barra Interactiva para Cambiar entre los 5 Modos en Vivo -->
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; background: var(--surface); padding: 0.6rem; border-radius: 10px; border: 1px solid var(--border);">
+            <!-- Pestañas para cambiar entre las 5 dinámicas en vivo -->
+            <div class="cv-tabs" role="tablist" aria-label="Dinámicas del simulador">
                 ${modos.map(m => `
-                    <button type="button" class="btn btn-cambiar-modo-sim ${this.modoActivo === m.id ? 'btn-cisco-primary' : ''}" data-modo="${m.id}" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; border-radius: 999px;">
+                    <button type="button" role="tab" aria-selected="${this.modoActivo === m.id}" class="cv-tab btn-cambiar-modo-sim ${this.modoActivo === m.id ? 'cv-activa' : ''}" data-modo="${m.id}">
                         <i class="fa-solid ${m.icono}"></i> ${m.texto}
                     </button>
                 `).join('')}
             </div>
 
-            <!-- Escenario Visual Realista -->
-            ${this.renderEscenarioSegunVector(mision)}
+            <div>
+                <!-- Escenario Visual Realista -->
+                ${this.renderEscenarioSegunVector(mision)}
 
-            <!-- Panel Dinámico de Evaluación -->
-            ${this.renderPanelDinamica(mision)}
+                <!-- Panel Dinámico de Evaluación -->
+                ${this.renderPanelDinamica(mision)}
+            </div>
+
+            <!-- Navegación dentro del módulo -->
+            <nav class="cv-nav-modulo" aria-label="Misiones del módulo">
+                ${anterior ? `
+                    <button type="button" class="cv-btn btn-nav-mision" data-mision-id="${anterior.id_mision}">
+                        <i class="fa-solid fa-chevron-left"></i> <span>Anterior: ${anterior.titulo}</span>
+                    </button>` : `<a href="#/misiones" class="cv-btn"><i class="fa-solid fa-chevron-left"></i> <span>Volver a los módulos</span></a>`}
+                ${siguiente ? `
+                    <button type="button" class="cv-btn cv-btn-primario btn-nav-mision" data-mision-id="${siguiente.id_mision}">
+                        <span>Siguiente: ${siguiente.titulo}</span> <i class="fa-solid fa-chevron-right"></i>
+                    </button>` : `<a href="#/misiones" class="cv-btn cv-btn-primario"><span>Fin del módulo · Ver módulos</span> <i class="fa-solid fa-chevron-right"></i></a>`}
+            </nav>
         </section>
         `;
     }

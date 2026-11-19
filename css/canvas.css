@@ -1,0 +1,226 @@
+/* =========================================================================
+   NEUROSHIELD · VISTAS ESTILO LMS (módulos, pendientes, curso del docente)
+   Inspirado en la organización de los LMS como Canvas: módulos plegables,
+   columna "Por hacer", navegación lateral del curso y libro de calificaciones.
+   Usa la paleta de NeuroShield (styles.css); este archivo solo agrega
+   componentes con prefijo .cv- para no alterar el resto de la aplicación.
+   ========================================================================= */
+
+.cv-page { display: grid; gap: 1.25rem; }
+
+/* --- Ruta de navegación y encabezado de página ------------------------- */
+.cv-breadcrumb {
+    display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;
+    font-size: 0.82rem; color: var(--text-muted);
+}
+.cv-breadcrumb a { color: var(--primary); font-weight: 600; }
+.cv-breadcrumb .cv-sep { color: #a3b1a8; font-size: 0.7rem; }
+.cv-breadcrumb .cv-actual { color: var(--text-main); font-weight: 600; }
+
+.cv-page-header {
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap;
+    padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+}
+.cv-page-header h1 { font-size: 1.65rem; font-weight: 800; line-height: 1.2; color: var(--text-main); }
+.cv-page-header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.3rem; max-width: 720px; }
+.cv-acciones { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+
+.cv-btn {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    padding: 0.5rem 0.95rem; border-radius: 6px; font-size: 0.84rem; font-weight: 600;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-main);
+    cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease;
+}
+.cv-btn:hover { background: #f1f5f2; border-color: #c4d0c7; }
+.cv-btn-primario { background: var(--primary); border-color: var(--primary); color: #ffffff; }
+.cv-btn-primario:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+.cv-btn-icono { padding: 0.42rem 0.55rem; }
+.cv-btn-icono.cv-peligro:hover { background: var(--danger-bg); border-color: #fecaca; color: #b91c1c; }
+.cv-select {
+    padding: 0.48rem 0.7rem; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); font-size: 0.84rem; color: var(--text-main);
+}
+
+/* --- Diseño con columna lateral derecha ("Por hacer") ------------------ */
+.cv-con-lateral { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1.5rem; align-items: start; }
+@media (max-width: 1000px) { .cv-con-lateral { grid-template-columns: 1fr; } }
+
+/* --- Progreso general --------------------------------------------------- */
+.cv-progreso {
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1.1rem;
+}
+.cv-progreso-texto { font-size: 0.86rem; color: var(--text-muted); }
+.cv-progreso-texto strong { color: var(--text-main); }
+.cv-barra { flex: 1; min-width: 160px; height: 8px; background: #e5ece7; border-radius: 999px; overflow: hidden; }
+.cv-barra > span { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+
+/* --- Módulos plegables -------------------------------------------------- */
+.cv-modulo { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.cv-modulo + .cv-modulo { margin-top: 1rem; }
+.cv-modulo-cabecera {
+    display: flex; align-items: center; gap: 0.75rem; width: 100%;
+    background: #f3f6f4; border: 0; border-bottom: 1px solid var(--border);
+    padding: 0.8rem 1rem; text-align: left; cursor: pointer; font: inherit; color: inherit;
+}
+.cv-modulo-cabecera:hover { background: #edf2ee; }
+.cv-modulo.cv-plegado .cv-modulo-cabecera { border-bottom: 0; }
+.cv-modulo.cv-plegado .cv-modulo-cuerpo { display: none; }
+.cv-caret { width: 18px; color: var(--text-muted); transition: transform 0.15s ease; }
+.cv-modulo.cv-plegado .cv-caret { transform: rotate(-90deg); }
+.cv-modulo-icono {
+    width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--primary-bg); color: var(--primary); font-size: 0.95rem;
+}
+.cv-modulo-titulo { flex: 1; min-width: 0; }
+.cv-modulo-titulo strong { display: block; font-size: 0.98rem; color: var(--text-main); }
+.cv-modulo-titulo span { font-size: 0.78rem; color: var(--text-muted); }
+.cv-modulo-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+.cv-modulo-vacio { padding: 1rem 1.25rem; font-size: 0.86rem; color: var(--text-muted); }
+
+/* --- Filas de elementos dentro de un módulo ----------------------------- */
+.cv-item {
+    display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 0.85rem;
+    padding: 0.8rem 1.1rem 0.8rem 2.6rem; border-bottom: 1px solid #edf1ee;
+    border-left: 3px solid transparent; cursor: pointer; transition: background 0.12s ease;
+}
+.cv-item:last-child { border-bottom: 0; }
+.cv-item:hover { background: #f8faf9; border-left-color: var(--primary); }
+.cv-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.cv-item-tipo { color: var(--text-muted); font-size: 1rem; text-align: center; }
+.cv-item-titulo { font-weight: 700; font-size: 0.9rem; color: var(--text-main); }
+.cv-item-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.cv-item-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 4px; font-size: 0.75rem; color: var(--text-muted); }
+.cv-item-meta i { margin-right: 3px; }
+.cv-item-derecha { display: flex; align-items: center; gap: 0.6rem; }
+
+/* --- Estados y etiquetas ------------------------------------------------ */
+.cv-estado { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.76rem; font-weight: 700; white-space: nowrap; }
+.cv-estado-ok { color: #15803d; }
+.cv-estado-progreso { color: #b45309; }
+.cv-estado-pendiente { color: #7c8b81; }
+.cv-chip {
+    display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap;
+    padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
+    background: #eef2f0; color: #3f4d44; border: 1px solid #dfe6e1;
+}
+.cv-chip-ia { background: #eef6ff; color: #1d4ed8; border-color: #c7dcfb; }
+.cv-chip-alto { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.cv-chip-medio { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.cv-chip-bajo { background: #ecfdf5; color: #15803d; border-color: #bbf7d0; }
+
+/* --- Columna "Por hacer" ------------------------------------------------ */
+.cv-lateral { display: grid; gap: 1rem; position: sticky; top: 1rem; }
+.cv-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.1rem; }
+.cv-panel h3 {
+    font-size: 0.8rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
+}
+.cv-pendiente {
+    display: grid; grid-template-columns: 22px 1fr; gap: 0.6rem; width: 100%;
+    padding: 0.6rem 0.2rem; border: 0; border-bottom: 1px solid #eef2ef; background: none;
+    text-align: left; cursor: pointer; font: inherit; color: inherit;
+}
+.cv-pendiente:last-child { border-bottom: 0; }
+.cv-pendiente:hover .cv-pendiente-titulo { color: var(--primary); text-decoration: underline; }
+.cv-pendiente > i { color: var(--primary); margin-top: 3px; }
+.cv-pendiente-titulo { font-size: 0.85rem; font-weight: 700; color: var(--text-main); line-height: 1.3; }
+.cv-pendiente-sub { font-size: 0.74rem; color: var(--text-muted); margin-top: 2px; }
+.cv-vacio-lateral { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+.cv-lista-simple { list-style: none; display: grid; gap: 0.55rem; font-size: 0.8rem; color: var(--text-muted); }
+.cv-lista-simple strong { color: var(--text-main); }
+.cv-lista-simple i { width: 18px; color: var(--primary); }
+
+/* --- Simulador: pestañas de dinámicas y navegación del módulo ----------- */
+.cv-sim-cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.cv-sim-cabecera h1 { font-size: 1.45rem; font-weight: 800; color: var(--text-main); }
+.cv-sim-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.45rem; }
+.cv-tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.cv-tab {
+    display: inline-flex; align-items: center; gap: 0.45rem; white-space: nowrap;
+    padding: 0.7rem 1rem; border: 0; border-bottom: 3px solid transparent; background: none;
+    font: inherit; font-size: 0.86rem; font-weight: 600; color: var(--text-muted); cursor: pointer;
+}
+.cv-tab:hover { color: var(--text-main); background: #f6f8f7; }
+.cv-tab.cv-activa { color: var(--primary); border-bottom-color: var(--primary); }
+.cv-nav-modulo {
+    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding-top: 1rem; border-top: 1px solid var(--border);
+}
+.cv-nav-modulo .cv-btn { max-width: 48%; }
+.cv-nav-modulo .cv-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Vista del administrador: navegación lateral del curso -------------- */
+.cv-curso { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 1.75rem; align-items: start; }
+@media (max-width: 900px) { .cv-curso { grid-template-columns: 1fr; } }
+.cv-curso-nav { display: grid; gap: 2px; position: sticky; top: 1rem; }
+.cv-curso-nav-titulo { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); padding: 0 0.85rem 0.5rem; }
+.cv-curso-nav button {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%;
+    padding: 0.55rem 0.85rem; border: 0; border-left: 3px solid transparent; background: none;
+    font: inherit; font-size: 0.88rem; color: var(--primary); text-align: left; cursor: pointer; border-radius: 0 6px 6px 0;
+}
+.cv-curso-nav button:hover { background: #f1f5f2; text-decoration: underline; }
+.cv-curso-nav button.cv-activa { border-left-color: var(--text-main); color: var(--text-main); font-weight: 700; background: none; text-decoration: none; }
+.cv-curso-nav .cv-conteo { font-size: 0.74rem; color: var(--text-muted); font-weight: 600; }
+
+/* --- Tablas ------------------------------------------------------------- */
+.cv-tabla-marco { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
+.cv-tabla { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.cv-tabla th {
+    text-align: left; font-size: 0.74rem; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase;
+    color: var(--text-muted); background: #f6f8f7; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.cv-tabla td { padding: 0.75rem 0.9rem; border-bottom: 1px solid #edf1ee; vertical-align: middle; }
+.cv-tabla tbody tr:last-child td { border-bottom: 0; }
+.cv-tabla tbody tr:hover td { background: #fafcfb; }
+.cv-tabla .cv-principal { font-weight: 700; color: var(--text-main); }
+.cv-tabla .cv-secundario { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+.cv-tabla .cv-celda-acciones { white-space: nowrap; text-align: right; }
+.cv-tabla .cv-celda-acciones .cv-btn + .cv-btn { margin-left: 0.35rem; }
+.cv-barra-herramientas {
+    display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--border);
+}
+.cv-barra-herramientas .cv-ayuda { font-size: 0.8rem; color: var(--text-muted); }
+
+/* --- Libro de calificaciones -------------------------------------------- */
+.cv-libro th.cv-col-num, .cv-libro td.cv-col-num { text-align: center; }
+.cv-libro td:first-child, .cv-libro th:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; }
+.cv-libro th:first-child { background: #f6f8f7; }
+.cv-nota {
+    display: inline-block; min-width: 52px; padding: 0.3rem 0.45rem; border-radius: 6px;
+    font-weight: 800; font-size: 0.82rem; text-align: center;
+}
+.cv-nota-bajo { background: #dcfce7; color: #14532d; }
+.cv-nota-medio { background: #fef3c7; color: #78350f; }
+.cv-nota-alto { background: #fee2e2; color: #7f1d1d; }
+.cv-nota-vacia { background: #f1f5f2; color: #8a9a90; font-weight: 600; }
+.cv-nota-sp { opacity: 0.55; }
+.cv-libro tfoot td { background: #f6f8f7; font-weight: 700; border-top: 1px solid var(--border); }
+.cv-leyenda { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.76rem; color: var(--text-muted); padding: 0.7rem 0.9rem; border-top: 1px solid var(--border); }
+.cv-leyenda span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.cv-leyenda i.cv-muestra { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+
+/* --- Ajustes de diseño -------------------------------------------------- */
+/* La hoja principal define .view-section.active como bloque; aquí se mantiene la rejilla */
+.view-section.active.cv-page { display: grid; gap: 1.25rem; }
+.cv-tabla th:first-child, .cv-tabla td:first-child { min-width: 210px; }
+.cv-truncar { max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-nowrap { white-space: nowrap; }
+/* La vista del administrador usa más ancho para que las tablas quepan sin desplazamiento */
+.main-content:has(> #gestion) { max-width: 1480px; }
+
+/* --- Pantallas pequeñas ------------------------------------------------- */
+@media (max-width: 700px) {
+    .cv-modulo-cabecera { flex-wrap: wrap; }
+    .cv-modulo-titulo { flex-basis: calc(100% - 80px); }
+    .cv-modulo-titulo span { display: none; }
+    .cv-modulo-meta { flex-basis: 100%; justify-content: flex-start; padding-left: 28px; }
+    .cv-item { grid-template-columns: 22px minmax(0, 1fr); padding-left: 1rem; }
+    .cv-item-derecha { grid-column: 2; }
+    .cv-page-header h1 { font-size: 1.4rem; }
+    .cv-nav-modulo .cv-btn { max-width: 100%; width: 100%; justify-content: center; }
+    .cv-tabs { scrollbar-width: thin; }
+}

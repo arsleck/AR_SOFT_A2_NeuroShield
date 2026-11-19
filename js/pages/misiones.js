@@ -1,168 +1,201 @@
+// === PÁGINA DE SIMULADORES (#/misiones) ===
+// Organización tipo LMS: un módulo plegable por vector de ataque con sus misiones,
+// el estado de cada una para el usuario y una columna "Por hacer" con lo que
+// recomienda el servicio de IA.
+
 const MisionesPage = {
     metaVectores: [
         {
             vector: 'Phishing',
-            titulo: 'Simulador de Phishing (Correo)',
+            titulo: 'Phishing · Correo electrónico',
             icono: 'fa-envelope-open-text',
-            descripcion: 'Bandeja de entrada interactiva para inspeccionar remitentes, cabeceras, archivos adjuntos y enlaces fraudulentos en correos institucionales o bancarios.'
+            descripcion: 'Bandeja de entrada para inspeccionar remitentes, cabeceras, adjuntos y enlaces fraudulentos.'
         },
         {
             vector: 'Smishing',
-            titulo: 'Simulador de Smishing (SMS Móvil)',
+            titulo: 'Smishing · Mensajes de texto',
             icono: 'fa-mobile-screen-button',
-            descripcion: 'Entorno de teléfono inteligente para detectar mensajes de texto maliciosos, alertas falsas de paquetería y enlaces acortados.'
+            descripcion: 'Teléfono simulado con SMS de paquetería, cobros falsos y enlaces acortados.'
         },
         {
             vector: 'Vishing',
-            titulo: 'Simulador de Vishing (Llamadas de Voz)',
+            titulo: 'Vishing · Llamadas de voz',
             icono: 'fa-phone-volume',
-            descripcion: 'Simulador de llamadas entrantes con audio sintetizado en vivo para entrenar la defensa frente a falsos asesores que solicitan códigos OTP o CVV.'
+            descripcion: 'Llamadas con voz sintetizada de falsos asesores que piden códigos o datos.'
         },
         {
             vector: 'Ing. Social',
-            titulo: 'Simulador de Ingeniería Social (Chat)',
+            titulo: 'Ingeniería Social · Chat',
             icono: 'fa-comments',
-            descripcion: 'Escenarios de mensajería instantánea corporativa (WhatsApp / Teams) donde los atacantes usan urgencia o suplantación de autoridad.'
+            descripcion: 'Conversaciones de mensajería donde el atacante usa urgencia o suplanta autoridad.'
         }
     ],
 
     modosDisponibles: [
-        { id: 'reaccion', nombre: '1. Reacción Táctica (Elegir la mejor acción)' },
-        { id: 'redflags', nombre: '2. Cazador de Red Flags (Señalar dónde falla el mensaje)' },
-        { id: 'urlinspector', nombre: '3. Auditoría Forense de Enlaces y Dominios' },
-        { id: 'dialogo', nombre: '4. Escudo de Diálogo (Cómo responder al atacante)' },
-        { id: 'protocolo', nombre: '5. Protocolo SOC (Ordenar pasos de contención)' }
+        { id: 'reaccion', icono: 'fa-bolt', nombre: 'Reacción Táctica', desc: 'Acceder, ignorar o reportar bajo reloj.' },
+        { id: 'redflags', icono: 'fa-magnifying-glass-location', nombre: 'Cazador de Red Flags', desc: 'Señala dónde falla el mensaje.' },
+        { id: 'urlinspector', icono: 'fa-link-slash', nombre: 'Inspector de URLs', desc: 'Analiza dominios, IPs y cabeceras.' },
+        { id: 'dialogo', icono: 'fa-reply-all', nombre: 'Escudo de Respuesta', desc: 'Elige cómo responder al atacante.' },
+        { id: 'protocolo', icono: 'fa-list-ol', nombre: 'Protocolo SOC', desc: 'Ordena los pasos de contención.' }
     ],
 
-    render: function() {
-        const todas = AppModel.catalogoMisiones || [];
+    ordenDificultad: { 'Básico': 0, 'Intermedio': 1, 'Avanzado': 2 },
+
+    // Misiones de un vector en el orden del módulo (de Básico a Avanzado)
+    misionesDeVector: function(vector) {
+        return (AppModel.catalogoMisiones || [])
+            .filter(m => m.vector === vector)
+            .sort((a, b) => ((this.ordenDificultad[a.dificultad] ?? 9) - (this.ordenDificultad[b.dificultad] ?? 9)) || (a.id_mision - b.id_mision));
+    },
+
+    metaDeVector: function(vector) {
+        return this.metaVectores.find(m => m.vector === vector) || { vector, titulo: vector, icono: 'fa-shield-halved', descripcion: '' };
+    },
+
+    estadoMision: function(idMision) {
+        const h = (AppModel.historialMisiones || {})[idMision];
+        if (!h) return { clase: 'cv-estado-pendiente', icono: 'fa-regular fa-circle', texto: 'Pendiente', intentos: 0 };
+        if (h.superada) return { clase: 'cv-estado-ok', icono: 'fa-solid fa-circle-check', texto: 'Superada', intentos: h.intentos };
+        return { clase: 'cv-estado-progreso', icono: 'fa-solid fa-circle-half-stroke', texto: 'En progreso', intentos: h.intentos };
+    },
+
+    chipRiesgo: function(valor) {
+        if (valor === undefined || valor === null) return '';
+        const clase = valor >= 60 ? 'cv-chip-alto' : valor >= 40 ? 'cv-chip-medio' : 'cv-chip-bajo';
+        return `<span class="cv-chip ${clase}" title="Riesgo estimado en este vector">Riesgo ${valor}%</span>`;
+    },
+
+    renderModulo: function(meta, ia) {
+        const misiones = this.misionesDeVector(meta.vector);
+        const superadas = misiones.filter(m => this.estadoMision(m.id_mision).texto === 'Superada').length;
+        const riesgo = (AppModel.estadoUsuario.riesgoPorVector || {})[meta.vector];
+        const prioritario = ia && Array.isArray(ia.vectores_prioritarios) && ia.vectores_prioritarios.includes(meta.vector);
+        const recomendadas = new Map(((ia && ia.misiones_recomendadas) || []).map(m => [m.id_mision, m]));
 
         return `
-        <section id="misiones" class="view-section active">
-            <div class="learning-hero mb-4">
-                <div>
-                    <span class="badge-pill">
-                        <i class="fa-solid fa-flask-vial"></i> Laboratorio Sandbox Multidinámica (5 Modos)
-                    </span>
-                    <h1 style="font-size: 1.85rem; font-weight: 800; margin-top: 0.45rem;">Centro de Simuladores Interactivos</h1>
-                    <p class="text-muted mt-1" style="max-width: 740px; line-height: 1.55;">
-                        Entrena en nuestros 4 vectores de ataque combinando <strong>5 mecánicas dinámicas distintas</strong>: Reacción Táctica, Cazador de Red Flags, Auditoría de Dominios, Respuesta en Diálogo y Protocolo de Contención SOC.
-                    </p>
-                </div>
-                <div>
-                    <button type="button" id="btn-mision-aleatoria" class="btn-cisco-primary">
-                        <i class="fa-solid fa-shuffle"></i> Reto Aleatorio (Misión + Dinámica al Azar)
-                    </button>
-                </div>
-            </div>
-
-            <!-- Cinta informativa de las 5 dinámicas -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.75rem; margin-bottom: 1.75rem;">
-                <div class="card" style="padding: 0.85rem 1rem; border-top: 3px solid var(--cisco-green);">
-                    <div style="font-weight: 800; font-size: 0.82rem; color: var(--cisco-dark);"><i class="fa-solid fa-bolt text-primary me-1"></i> 1. Reacción Táctica</div>
-                    <p class="text-muted" style="font-size: 0.75rem; margin-top: 2px;">Decide si acceder, ignorar o reportar bajo reloj.</p>
-                </div>
-                <div class="card" style="padding: 0.85rem 1rem; border-top: 3px solid #0284c7;">
-                    <div style="font-weight: 800; font-size: 0.82rem; color: var(--cisco-dark);"><i class="fa-solid fa-magnifying-glass-location text-primary me-1"></i> 2. Cazador Red Flags</div>
-                    <p class="text-muted" style="font-size: 0.75rem; margin-top: 2px;">Haz clic en las partes exactas donde falla el mensaje.</p>
-                </div>
-                <div class="card" style="padding: 0.85rem 1rem; border-top: 3px solid #f59e0b;">
-                    <div style="font-weight: 800; font-size: 0.82rem; color: var(--cisco-dark);"><i class="fa-solid fa-link-slash text-primary me-1"></i> 3. Auditor de URLs</div>
-                    <p class="text-muted" style="font-size: 0.75rem; margin-top: 2px;">Inspecciona dominios, IPs y cabeceras de envío.</p>
-                </div>
-                <div class="card" style="padding: 0.85rem 1rem; border-top: 3px solid #8b5cf6;">
-                    <div style="font-weight: 800; font-size: 0.82rem; color: var(--cisco-dark);"><i class="fa-solid fa-reply-all text-primary me-1"></i> 4. Escudo de Diálogo</div>
-                    <p class="text-muted" style="font-size: 0.75rem; margin-top: 2px;">Elige la respuesta segura ante la presión del atacante.</p>
-                </div>
-                <div class="card" style="padding: 0.85rem 1rem; border-top: 3px solid #ec4899;">
-                    <div style="font-weight: 800; font-size: 0.82rem; color: var(--cisco-dark);"><i class="fa-solid fa-list-ol text-primary me-1"></i> 5. Protocolo SOC</div>
-                    <p class="text-muted" style="font-size: 0.75rem; margin-top: 2px;">Ordena los pasos de contención tras un incidente.</p>
-                </div>
-            </div>
-
-            <!-- 4 Recuadros Principales (Uno por cada Simulador) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); gap: 1.5rem;">
-                ${this.metaVectores.map(meta => {
-                    const ejemplos = todas.filter(m => m.vector === meta.vector);
-                    const riesgoVector = AppModel.estadoUsuario.riesgoPorVector[meta.vector] ?? 50;
-
+        <section class="cv-modulo" data-vector="${meta.vector}">
+            <button type="button" class="cv-modulo-cabecera" aria-expanded="true">
+                <i class="fa-solid fa-caret-down cv-caret"></i>
+                <span class="cv-modulo-icono"><i class="fa-solid ${meta.icono}"></i></span>
+                <span class="cv-modulo-titulo">
+                    <strong>${meta.titulo}</strong>
+                    <span>${meta.descripcion}</span>
+                </span>
+                <span class="cv-modulo-meta">
+                    ${prioritario ? '<span class="cv-chip cv-chip-ia"><i class="fa-solid fa-brain"></i> Prioridad según la IA</span>' : ''}
+                    ${this.chipRiesgo(riesgo)}
+                    <span class="cv-chip">${superadas}/${misiones.length} superadas</span>
+                </span>
+            </button>
+            <div class="cv-modulo-cuerpo">
+                ${misiones.length === 0 ? '<p class="cv-modulo-vacio">Aún no hay misiones publicadas en este módulo.</p>' : misiones.map(m => {
+                    const estado = this.estadoMision(m.id_mision);
+                    const rec = recomendadas.get(m.id_mision);
+                    const modo = rec ? rec.modo_sugerido : 'reaccion';
                     return `
-                    <article class="cisco-course-card" style="cursor: default;">
-                        <div class="cisco-card-thumb" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); height: 130px; justify-content: flex-start; padding: 1.5rem; gap: 1.2rem;">
-                            <span class="cisco-level-badge">${ejemplos.length} Caso${ejemplos.length === 1 ? '' : 's'} &bull; 5 Modos</span>
-                            
-                            <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(108, 192, 74, 0.18); border: 2px solid var(--cisco-green); color: var(--cisco-green); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; margin-top: 1rem;">
-                                <i class="fa-solid ${meta.icono}"></i>
-                            </div>
-                            <div style="color: white; margin-top: 1rem;">
-                                <div style="font-size: 0.74rem; color: var(--cisco-green); font-weight: 800; text-transform: uppercase;">
-                                    Vector: ${meta.vector}
-                                </div>
-                                <h3 style="font-size: 1.15rem; font-weight: 800; color: white; margin-top: 0.1rem;">
-                                    ${meta.titulo}
-                                </h3>
+                    <div class="cv-item btn-iniciar-mision-modulo" role="button" tabindex="0" data-mision-id="${m.id_mision}" data-modo="${modo}">
+                        <i class="fa-solid fa-crosshairs cv-item-tipo"></i>
+                        <div>
+                            <div class="cv-item-titulo">${m.titulo}</div>
+                            <div class="cv-item-desc">${m.descripcion_corta || ''}</div>
+                            <div class="cv-item-meta">
+                                <span><i class="fa-solid fa-signal"></i>${m.dificultad || 'Básico'}</span>
+                                <span><i class="fa-solid fa-stopwatch"></i>${m.tiempo_limite || 120} s</span>
+                                ${estado.intentos > 0 ? `<span><i class="fa-solid fa-rotate"></i>${estado.intentos} intento${estado.intentos === 1 ? '' : 's'}</span>` : ''}
+                                ${rec ? `<span class="cv-chip cv-chip-ia"><i class="fa-solid fa-brain"></i> Recomendada por IA · ${AnalisisIAComponent.MODOS[modo] || 'Simulador'}</span>` : ''}
                             </div>
                         </div>
-
-                        <div class="cisco-card-body">
-                            <p class="cisco-card-desc" style="margin-bottom: 0.9rem;">
-                                ${meta.descripcion}
-                            </p>
-
-                            <div style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 0.55rem 0.85rem; font-size: 0.8rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                                <span>Tu vulnerabilidad actual en <strong>${meta.vector}</strong>:</span>
-                                <span class="badge-pill" style="background: ${riesgoVector >= 60 ? 'var(--danger-bg)' : 'var(--cisco-green-bg)'}; color: ${riesgoVector >= 60 ? '#991b1b' : '#2b5917'};">
-                                    ${riesgoVector}%
-                                </span>
-                            </div>
-
-                            ${ejemplos.length > 0 ? `
-                                <!-- Selector 1: Escenario / Ejemplo -->
-                                <div class="form-group mb-2">
-                                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--cisco-dark); margin-bottom: 0.3rem; display: block;">
-                                        <i class="fa-solid fa-folder-open text-primary me-1"></i> 1. Elige el caso de ataque:
-                                    </label>
-                                    <select class="form-input select-ejemplo-vector" data-vector="${meta.vector}" style="font-weight: 600; padding: 0.55rem 0.75rem;">
-                                        ${ejemplos.map((ej, idx) => `
-                                            <option value="${ej.id_mision}">
-                                                Caso ${idx + 1}: ${ej.titulo} (${ej.dificultad})
-                                            </option>
-                                        `).join('')}
-                                    </select>
-                                </div>
-
-                                <!-- Selector 2: Dinámica / Modo de Simulador (Los 5 tipos) -->
-                                <div class="form-group mb-3">
-                                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--cisco-dark); margin-bottom: 0.3rem; display: block;">
-                                        <i class="fa-solid fa-gamepad text-primary me-1"></i> 2. Elige la dinámica del simulador:
-                                    </label>
-                                    <select class="form-input select-modo-vector" data-vector="${meta.vector}" style="font-weight: 600; padding: 0.55rem 0.75rem; border-color: var(--cisco-green); background: #f8fdf6;">
-                                        ${this.modosDisponibles.map(modo => `
-                                            <option value="${modo.id}">${modo.nombre}</option>
-                                        `).join('')}
-                                    </select>
-                                </div>
-
-                                <div id="preview-vector-${meta.vector.replace(/\s+/g, '')}" style="background: #f8fafc; border-left: 3px solid var(--cisco-green); padding: 0.6rem 0.85rem; border-radius: 6px; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.15rem;">
-                                    <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Contexto del caso:</strong>
-                                    <span class="preview-desc-texto">${ejemplos[0].descripcion_corta}</span>
-                                </div>
-
-                                <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 0.65rem; margin-top: auto;">
-                                    <button type="button" class="btn-cisco-primary btn-practicar-seleccionado" data-vector="${meta.vector}" style="justify-content: center; padding: 0.65rem 1rem; font-size: 0.84rem;">
-                                        <i class="fa-solid fa-play"></i> Iniciar Práctica
-                                    </button>
-                                    <button type="button" class="btn-cisco-outline btn-azar-vector" data-vector="${meta.vector}" style="justify-content: center; padding: 0.65rem 0.8rem; font-size: 0.82rem;">
-                                        <i class="fa-solid fa-dice"></i> Modo al Azar
-                                    </button>
-                                </div>
-                            ` : `
-                                <p class="text-muted" style="font-size: 0.85rem;">No hay ejemplos activos en este vector.</p>
-                            `}
+                        <div class="cv-item-derecha">
+                            <span class="cv-estado ${estado.clase}"><i class="${estado.icono}"></i> ${estado.texto}</span>
+                            <i class="fa-solid fa-chevron-right" style="color: #a3b1a8;"></i>
                         </div>
-                    </article>
-                    `;
+                    </div>`;
                 }).join('')}
+            </div>
+        </section>`;
+    },
+
+    renderPorHacer: function(ia) {
+        const misiones = (ia && ia.misiones_recomendadas) || [];
+        const cursos = (ia && ia.cursos_recomendados) || [];
+        const refuerzos = (ia && ia.refuerzos) || [];
+
+        const items = [
+            ...misiones.map(m => `
+                <button type="button" class="cv-pendiente btn-ir-mision-ia" data-mision-id="${m.id_mision}" data-modo="${m.modo_sugerido || 'reaccion'}">
+                    <i class="fa-solid fa-crosshairs"></i>
+                    <span>
+                        <span class="cv-pendiente-titulo">${m.titulo}</span>
+                        <span class="cv-pendiente-sub" style="display: block;">${m.vector} · ${m.dificultad} · ${AnalisisIAComponent.MODOS[m.modo_sugerido] || 'Simulador'}</span>
+                        ${m.motivo ? `<span class="cv-pendiente-sub" style="display: block;">${m.motivo}</span>` : ''}
+                    </span>
+                </button>`),
+            ...cursos.slice(0, 3).map(c => `
+                <button type="button" class="cv-pendiente btn-ver-curso" data-curso-id="${c.id_curso}">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>
+                        <span class="cv-pendiente-titulo">${c.titulo}</span>
+                        <span class="cv-pendiente-sub" style="display: block;">Curso · ${c.categoria}${c.duracion ? ' · ' + c.duracion : ''}</span>
+                    </span>
+                </button>`)
+        ];
+
+        return `
+        <aside class="cv-lateral">
+            <div class="cv-panel">
+                <h3><i class="fa-solid fa-list-check"></i> Por hacer</h3>
+                ${refuerzos.length > 0 ? `
+                    <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.6rem;">
+                        ${refuerzos.map(r => `<span class="cv-chip cv-chip-ia" title="Confianza ${r.confianza}"><i class="fa-solid fa-brain"></i> ${(AnalisisIAComponent.REFUERZOS[r.tipo] || {}).titulo || r.tipo}</span>`).join('')}
+                    </div>` : ''}
+                ${items.length > 0 ? items.join('') : `
+                    <p class="cv-vacio-lateral">Completa una misión o el examen de un curso y la red neuronal te sugerirá aquí qué practicar.</p>`}
+            </div>
+            <div class="cv-panel">
+                <h3><i class="fa-solid fa-gamepad"></i> Dinámicas del simulador</h3>
+                <ul class="cv-lista-simple">
+                    ${this.modosDisponibles.map(m => `<li><i class="fa-solid ${m.icono}"></i><strong>${m.nombre}:</strong> ${m.desc}</li>`).join('')}
+                </ul>
+            </div>
+        </aside>`;
+    },
+
+    render: function() {
+        const ia = AppModel.estadoUsuario.analisisIA && AppModel.estadoUsuario.analisisIA.disponible
+            ? AppModel.estadoUsuario.analisisIA : null;
+        const todas = AppModel.catalogoMisiones || [];
+        const superadas = todas.filter(m => this.estadoMision(m.id_mision).texto === 'Superada').length;
+        const porcentaje = todas.length > 0 ? Math.round((superadas / todas.length) * 100) : 0;
+
+        return `
+        <section id="misiones" class="view-section active cv-page">
+            <nav class="cv-breadcrumb" aria-label="Ruta">
+                <a href="#/dashboard">NeuroShield</a><i class="fa-solid fa-chevron-right cv-sep"></i>
+                <span class="cv-actual">Simuladores</span>
+            </nav>
+
+            <header class="cv-page-header">
+                <div>
+                    <h1>Simuladores</h1>
+                    <p>Cuatro módulos, uno por vector de ataque. Cada misión se puede practicar en 5 dinámicas distintas; se considera superada cuando identificas y reportas la amenaza.</p>
+                </div>
+                <div class="cv-acciones">
+                    <button type="button" class="cv-btn" id="btn-alternar-modulos"><i class="fa-solid fa-up-right-and-down-left-from-center"></i> Contraer todo</button>
+                    <button type="button" class="cv-btn cv-btn-primario" id="btn-mision-aleatoria"><i class="fa-solid fa-shuffle"></i> Reto aleatorio</button>
+                </div>
+            </header>
+
+            <div class="cv-progreso">
+                <span class="cv-progreso-texto"><strong>${superadas} de ${todas.length}</strong> misiones superadas</span>
+                <div class="cv-barra" role="progressbar" aria-valuenow="${porcentaje}" aria-valuemin="0" aria-valuemax="100"><span style="width: ${porcentaje}%;"></span></div>
+                <span class="cv-progreso-texto"><strong>${porcentaje}%</strong></span>
+            </div>
+
+            <div class="cv-con-lateral">
+                <div>
+                    ${this.metaVectores.map(meta => this.renderModulo(meta, ia)).join('')}
+                </div>
+                ${this.renderPorHacer(ia)}
             </div>
         </section>
         `;

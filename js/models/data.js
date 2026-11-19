@@ -164,6 +164,8 @@ const AppModel = {
     misionActivaId: 1,
     listaUsuariosAdmin: [],
     listaGruposAdmin: [],
+    libroCalificaciones: [],   // último análisis de la red por estudiante (vista del administrador)
+    historialMisiones: {},     // { [id_mision]: { intentos, superada, ultima_decision } } del usuario actual
 
     obtenerHabilidadesPorDefecto: function(categoria) {
         const mapa = {
@@ -246,15 +248,37 @@ const AppModel = {
 
         try {
             const headers = { 'Authorization': `Bearer ${token}` };
-            const [resUsuarios, resGrupos] = await Promise.all([
+            const [resUsuarios, resGrupos, resLibro] = await Promise.all([
                 fetch('http://localhost:3000/api/admin/usuarios', { headers }),
-                fetch('http://localhost:3000/api/admin/grupos', { headers })
+                fetch('http://localhost:3000/api/admin/grupos', { headers }),
+                fetch('http://localhost:3000/api/admin/ia/libro-calificaciones', { headers })
             ]);
 
             if (resUsuarios.ok) this.listaUsuariosAdmin = await resUsuarios.json();
             if (resGrupos.ok) this.listaGruposAdmin = await resGrupos.json();
+            if (resLibro.ok) this.libroCalificaciones = await resLibro.json();
         } catch (error) {
             console.error('Error al sincronizar datos de administración:', error);
+        }
+    },
+
+    // Estado de cada misión del usuario (superada, intentos) para la vista de módulos.
+    sincronizarHistorialMisionesDesdeBD: async function() {
+        const userId = this.estadoUsuario.id;
+        const token = sessionStorage.getItem('neuroshield_token');
+        if (!userId || !token) return;
+        try {
+            const res = await fetch(`http://localhost:3000/api/usuarios/${userId}/historial-misiones`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const filas = await res.json();
+                const mapa = {};
+                filas.forEach(f => { mapa[f.id_mision] = f; });
+                this.historialMisiones = mapa;
+            }
+        } catch (e) {
+            console.error('No se pudo cargar el historial de misiones:', e);
         }
     },
 

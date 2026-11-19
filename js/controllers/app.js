@@ -68,6 +68,18 @@ const AppController = {
             return;
         }
 
+        // Módulos de simuladores: necesitan el estado de cada misión del usuario
+        if (rutaActual === '#/misiones') {
+            this.detenerTimer();
+            AppModel.sincronizarHistorialMisionesDesdeBD().then(() => {
+                if (window.location.hash === '#/misiones') {
+                    UIView.renderizarPagina('#/misiones');
+                    this.asignarEventos('#/misiones');
+                }
+            });
+            return;
+        }
+
         UIView.renderizarPagina(rutaActual);
         this.asignarEventos(rutaActual);
 
@@ -885,42 +897,43 @@ const AppController = {
 
         // === 4. CENTRO DE SIMULADORES EN 4 RECUADROS (#/misiones) ===
         } else if (rutaActual === '#/misiones') {
-            document.querySelectorAll('.select-ejemplo-vector').forEach(select => {
-                select.addEventListener('change', (e) => {
-                    const idElegido = e.target.value;
-                    const vector = e.target.getAttribute('data-vector');
-                    const mision = AppModel.catalogoMisiones.find(m => String(m.id_mision) === String(idElegido));
-                    const cajaPreview = document.getElementById(`preview-vector-${vector.replace(/\s+/g, '')}`);
-                    if (mision && cajaPreview) {
-                        const spanTexto = cajaPreview.querySelector('.preview-desc-texto');
-                        if (spanTexto) spanTexto.innerText = mision.descripcion_corta;
-                    }
+            const seccion = document.getElementById('misiones');
+
+            const iniciarMision = (idMision, modo) => {
+                if (!AppModel.catalogoMisiones.some(m => String(m.id_mision) === String(idMision))) return;
+                AppModel.misionActivaId = parseInt(idMision, 10);
+                SimuladorPage.modoActivo = modo || 'reaccion';
+                window.location.hash = '#/simulador';
+            };
+
+            // Plegar o desplegar un módulo
+            seccion?.querySelectorAll('.cv-modulo-cabecera').forEach(cabecera => {
+                cabecera.addEventListener('click', () => {
+                    const modulo = cabecera.closest('.cv-modulo');
+                    const plegado = modulo.classList.toggle('cv-plegado');
+                    cabecera.setAttribute('aria-expanded', String(!plegado));
                 });
             });
 
-            document.querySelectorAll('.btn-practicar-seleccionado').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const vector = btn.getAttribute('data-vector');
-                    const selectCaso = document.querySelector(`.select-ejemplo-vector[data-vector="${vector}"]`);
-                    const selectModo = document.querySelector(`.select-modo-vector[data-vector="${vector}"]`);
-                    if (selectCaso && selectCaso.value) {
-                        AppModel.misionActivaId = parseInt(selectCaso.value, 10);
-                        SimuladorPage.modoActivo = selectModo ? selectModo.value : 'reaccion';
-                        window.location.hash = '#/simulador';
-                    }
+            document.getElementById('btn-alternar-modulos')?.addEventListener('click', (e) => {
+                const modulos = [...document.querySelectorAll('#misiones .cv-modulo')];
+                const plegar = modulos.some(m => !m.classList.contains('cv-plegado'));
+                modulos.forEach(m => {
+                    m.classList.toggle('cv-plegado', plegar);
+                    m.querySelector('.cv-modulo-cabecera')?.setAttribute('aria-expanded', String(!plegar));
                 });
+                e.currentTarget.innerHTML = plegar
+                    ? '<i class="fa-solid fa-down-left-and-up-right-to-center"></i> Expandir todo'
+                    : '<i class="fa-solid fa-up-right-and-down-left-from-center"></i> Contraer todo';
             });
 
-            document.querySelectorAll('.btn-azar-vector').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const vector = btn.getAttribute('data-vector');
-                    const ejemplos = AppModel.catalogoMisiones.filter(m => m.vector === vector);
-                    const modos = ['reaccion', 'redflags', 'urlinspector', 'dialogo', 'protocolo'];
-                    if (ejemplos.length > 0) {
-                        const azarCaso = ejemplos[Math.floor(Math.random() * ejemplos.length)];
-                        AppModel.misionActivaId = azarCaso.id_mision;
-                        SimuladorPage.modoActivo = modos[Math.floor(Math.random() * modos.length)];
-                        window.location.hash = '#/simulador';
+            // Abrir una misión del módulo (clic o tecla Enter/Espacio)
+            seccion?.querySelectorAll('.btn-iniciar-mision-modulo').forEach(fila => {
+                fila.addEventListener('click', () => iniciarMision(fila.dataset.misionId, fila.dataset.modo));
+                fila.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        iniciarMision(fila.dataset.misionId, fila.dataset.modo);
                     }
                 });
             });
@@ -930,14 +943,26 @@ const AppController = {
                 const modos = ['reaccion', 'redflags', 'urlinspector', 'dialogo', 'protocolo'];
                 if (todas.length > 0) {
                     const azar = todas[Math.floor(Math.random() * todas.length)];
-                    AppModel.misionActivaId = azar.id_mision;
-                    SimuladorPage.modoActivo = modos[Math.floor(Math.random() * modos.length)];
-                    window.location.hash = '#/simulador';
+                    iniciarMision(azar.id_mision, modos[Math.floor(Math.random() * modos.length)]);
                 }
             });
 
         // === 5. SIMULADOR PRÁCTICO CON 5 DINÁMICAS E INTERFAZ REALISTA (#/simulador) ===
         } else if (rutaActual === '#/simulador') {
+            // Anterior / Siguiente dentro del módulo: misma ruta, así que se vuelve a pintar a mano
+            document.querySelectorAll('.btn-nav-mision').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const destino = AppModel.catalogoMisiones.find(m => String(m.id_mision) === btn.dataset.misionId);
+                    if (!destino) return;
+                    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                    AppModel.misionActivaId = destino.id_mision;
+                    UIView.renderizarPagina('#/simulador');
+                    this.asignarEventos('#/simulador');
+                    this.iniciarTimer(destino.tiempo_limite || 120);
+                    document.querySelector('.main-wrapper')?.scrollTo({ top: 0 });
+                });
+            });
+
             document.querySelectorAll('.btn-cambiar-modo-sim').forEach(btn => {
                 btn.addEventListener('click', () => {
                     SimuladorPage.modoActivo = btn.getAttribute('data-modo');
@@ -1080,6 +1105,24 @@ const AppController = {
                     UIView.renderizarPagina('#/gestion');
                     this.asignarEventos('#/gestion');
                 });
+            });
+
+            // Libro de calificaciones: filtro por grupo y exportación a CSV
+            document.getElementById('filtro-grupo-libro')?.addEventListener('change', (e) => {
+                GestionPage.filtroGrupoLibro = e.target.value;
+                UIView.renderizarPagina('#/gestion');
+                this.asignarEventos('#/gestion');
+            });
+
+            document.getElementById('btn-exportar-libro')?.addEventListener('click', () => {
+                const blob = new Blob(['\ufeff' + GestionPage.generarCSV()], { type: 'text/csv;charset=utf-8' });
+                const enlace = document.createElement('a');
+                enlace.href = URL.createObjectURL(blob);
+                enlace.download = `calificaciones_neuroshield_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(enlace);
+                enlace.click();
+                enlace.remove();
+                URL.revokeObjectURL(enlace.href);
             });
 
             document.getElementById('btn-nuevo-curso')?.addEventListener('click', () => {
@@ -1345,6 +1388,15 @@ const AppController = {
             
             const resultado = AppModel.calcularNuevoRiesgo(accion);
             sessionStorage.setItem('neuroshield_usuario', JSON.stringify(AppModel.estadoUsuario));
+
+            // Estado de la misión en los módulos (se confirma con la BD al volver a #/misiones)
+            const previo = AppModel.historialMisiones[resultado.misionId] || { intentos: 0, superada: false };
+            AppModel.historialMisiones[resultado.misionId] = {
+                ...previo,
+                intentos: previo.intentos + 1,
+                superada: previo.superada || accion === 'reportar',
+                ultima_decision: accion
+            };
 
             if (AppModel.estadoUsuario.id) {
                 try {
