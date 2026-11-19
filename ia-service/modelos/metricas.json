@@ -1,23 +1,29 @@
 {
-  "version_modelo": "cnn1d-v1",
-  "fecha_entrenamiento": "2026-11-16T06:42:16+00:00",
+  "version_modelo": "cnn1d-v2",
+  "fecha_entrenamiento": "2026-11-19T03:41:24+00:00",
   "datos": {
     "origen": "sintético (entrenamiento/generar_dataset.py)",
     "entrenamiento": 40000,
     "validacion": 5000,
     "prueba": 5000
   },
-  "epocas_ejecutadas": 20,
-  "parametros": 32068,
+  "epocas_ejecutadas": 25,
+  "umbrales_refuerzo": {
+    "teoria": 0.42,
+    "presion": 0.32,
+    "reportar": 0.31,
+    "avanzar": 0.25
+  },
+  "parametros": 32328,
   "prueba": {
     "mae_por_vector_puntos": {
-      "Phishing": 15.88,
-      "Smishing": 15.97,
-      "Vishing": 15.98,
-      "Ing. Social": 15.85
+      "Phishing": 16.52,
+      "Smishing": 16.36,
+      "Vishing": 16.57,
+      "Ing. Social": 16.41
     },
-    "mae_puntaje_global_puntos": 9.97,
-    "exactitud_nivel": 0.666,
+    "mae_puntaje_global_puntos": 10.22,
+    "exactitud_nivel": 0.6484,
     "matriz_confusion_nivel": {
       "orden": [
         "Bajo",
@@ -26,26 +32,92 @@
       ],
       "filas_real_columnas_estimado": [
         [
-          1646,
-          511,
-          39
+          1494,
+          536,
+          29
         ],
         [
-          368,
-          911,
-          257
+          381,
+          947,
+          269
         ],
         [
-          35,
-          460,
-          773
+          33,
+          510,
+          801
         ]
       ]
+    },
+    "perfil_refuerzo": {
+      "teoria": {
+        "precision": 0.802,
+        "exhaustividad": 0.904,
+        "f1": 0.85,
+        "exactitud": 0.788,
+        "casos_positivos": 3329
+      },
+      "presion": {
+        "precision": 0.558,
+        "exhaustividad": 0.855,
+        "f1": 0.675,
+        "exactitud": 0.664,
+        "casos_positivos": 2044
+      },
+      "reportar": {
+        "precision": 0.526,
+        "exhaustividad": 0.831,
+        "f1": 0.644,
+        "exactitud": 0.617,
+        "casos_positivos": 2086
+      },
+      "avanzar": {
+        "precision": 0.439,
+        "exhaustividad": 0.607,
+        "f1": 0.509,
+        "exactitud": 0.88,
+        "casos_positivos": 514
+      }
     }
   },
-  "linea_base_tasa_de_fallos": {
-    "mae_por_vector_puntos": 22.59,
-    "mae_puntaje_global_puntos": 13.0,
-    "exactitud_nivel": 0.5998
+  "linea_base_reglas": {
+    "mae_por_vector_puntos": 22.55,
+    "mae_puntaje_global_puntos": 12.1,
+    "exactitud_nivel": 0.6252,
+    "umbrales_refuerzo": {
+      "teoria": 0.59,
+      "presion": 0.56,
+      "reportar": 0.43,
+      "avanzar": 0.59
+    },
+    "perfil_refuerzo": {
+      "teoria": {
+        "precision": 0.79,
+        "exhaustividad": 0.89,
+        "f1": 0.837,
+        "exactitud": 0.769,
+        "casos_positivos": 3329
+      },
+      "presion": {
+        "precision": 0.583,
+        "exhaustividad": 0.817,
+        "f1": 0.68,
+        "exactitud": 0.686,
+        "casos_positivos": 2044
+      },
+      "reportar": {
+        "precision": 0.539,
+        "exhaustividad": 0.777,
+        "f1": 0.636,
+        "exactitud": 0.629,
+        "casos_positivos": 2086
+      },
+      "avanzar": {
+        "precision": 0.419,
+        "exhaustividad": 0.576,
+        "f1": 0.485,
+        "exactitud": 0.874,
+        "casos_positivos": 514
+      }
+    }
   }
 }

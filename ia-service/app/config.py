@@ -27,11 +27,16 @@ RESULTADOS = {
     "correcta": 0.0,
 }
 
+# Segunda salida de la red: perfil de refuerzo (clasificación multietiqueta).
+# Cada valor es la probabilidad de que el usuario necesite ese tipo de refuerzo.
+REFUERZOS = ["teoria", "presion", "reportar", "avanzar"]
+UMBRAL_REFUERZO = 0.5
+
 # Umbrales del puntaje global (0-100), iguales a la leyenda del perfil del usuario.
 UMBRAL_MEDIO = 40
 UMBRAL_ALTO = 60
 
-VERSION_MODELO = "cnn1d-v1"
+VERSION_MODELO = "cnn1d-v2"
 DIR_MODELOS = Path(__file__).resolve().parent.parent / "modelos"
 RUTA_MODELO = DIR_MODELOS / "neuroshield_cnn.keras"
 RUTA_METRICAS = DIR_MODELOS / "metricas.json"
