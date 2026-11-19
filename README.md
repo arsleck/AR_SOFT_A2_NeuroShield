@@ -318,7 +318,7 @@ Antes de ejecutar el proyecto, se requiere:
 3. Ejecuta el contenido del script para crear las tablas relacionales.
 4. Verifica que las tablas se hayan creado correctamente.
 
-> Si la base de datos ya existía de una fase anterior, no es necesario volver a ejecutar el script: al iniciar, el backend crea automáticamente las tablas `Respuestas_Quiz` y `Analisis_IA` y la columna `Historial_Simulaciones.tiempo_respuesta`.
+> Si la base de datos ya existía de una fase anterior, no es necesario volver a ejecutar el script: al iniciar, el backend crea automáticamente las tablas `Respuestas_Quiz` y `Analisis_IA` y la columna `Historial_Simulaciones.tiempo_respuesta`, además de las columnas `perfil_refuerzo` y `refuerzos` de `Analisis_IA`.
 
 ### 7.3. Paso 2: Configurar el backend
 
@@ -380,7 +380,7 @@ http://localhost:8000/docs          Documentación interactiva de la API (Swagge
 http://localhost:3000/api/ia/estado Comunicación backend -> servicio de IA
 ```
 
-Al iniciar, el backend informa en consola si logró conectarse: `Servicio de IA conectado en http://localhost:8000 (modelo cnn1d-v1)`.
+Al iniciar, el backend informa en consola si logró conectarse: `Servicio de IA conectado en http://localhost:8000 (modelo cnn1d-v2)`.
 
 ### 7.5. Paso 4: Ejecutar el frontend
 
@@ -513,7 +513,7 @@ Líneas de evolución previstas:
 
 El servicio de IA cumple dos funciones ligadas al propósito del proyecto:
 
-1. **Estimar la vulnerabilidad de cada usuario.** Después de cada simulación o examen, una red neuronal analiza el historial reciente del usuario y estima su nivel de vulnerabilidad global (0 a 100, clasificado en bajo, medio o alto) y su riesgo en cada vector de ataque: phishing, smishing, vishing e ingeniería social. Con ese resultado genera recomendaciones y selecciona los cursos que debería tomar.
+1. **Estimar la vulnerabilidad de cada usuario.** Después de cada simulación o examen, una red neuronal analiza el historial reciente del usuario y estima su nivel de vulnerabilidad global (0 a 100, clasificado en bajo, medio o alto) y su riesgo en cada vector de ataque: phishing, smishing, vishing e ingeniería social. La misma red detecta además qué tipo de refuerzo necesita el usuario (refuerzo teórico, entrenar bajo presión, pasar de ignorar a reportar o subir de dificultad) a partir de sus respuestas, sus acciones y su tiempo de decisión. Con ese resultado se generan las recomendaciones y se eligen las misiones y los cursos que debería tomar.
 2. **Orientar al administrador en la creación de contenido.** A partir del desempeño de un grupo (o de todos los usuarios), el servicio identifica el vector más débil y el nivel adecuado, y propone un borrador de curso con su examen o un borrador de misión para el simulador. El administrador lo revisa, lo ajusta y decide si lo publica.
 
 ### 12.2. Servicio y tecnología utilizados
@@ -523,8 +523,9 @@ El servicio de IA cumple dos funciones ligadas al propósito del proyecto:
 | Servicio | Microservicio independiente en **Python** con **FastAPI** y **Uvicorn** (`ia-service/`). |
 | Modelo | **Red neuronal convolucional 1D** construida con **TensorFlow / Keras**. |
 | Entrada | Matriz de 20 interacciones × 9 características. |
-| Salida | 4 valores entre 0 y 1: vulnerabilidad estimada por vector. |
-| Tamaño | 32.068 parámetros; inferencia en CPU en milisegundos. |
+| Salida 1 | 4 valores entre 0 y 1: vulnerabilidad estimada por vector (regresión). |
+| Salida 2 | 4 probabilidades: perfil de refuerzo que necesita el usuario (clasificación multietiqueta). |
+| Tamaño | 32.328 parámetros; inferencia en CPU en milisegundos. |
 
 **Arquitectura de la red** (`ia-service/app/modelo.py`):
 
@@ -535,8 +536,18 @@ Entrada (20, 9)
   -> Conv1D 64 filtros, ventana 3, ReLU
   -> GlobalAveragePooling + GlobalMaxPooling (concatenados)
   -> Densa 64, ReLU -> Dropout 0.2
-  -> Densa 4, sigmoide   (Phishing, Smishing, Vishing, Ing. Social)
+  -> Salida 1: Densa 4, sigmoide   (vulnerabilidad: Phishing, Smishing, Vishing, Ing. Social)
+  -> Salida 2: Densa 4, sigmoide   (refuerzo: teoría, presión, reportar, avanzar)
 ```
+
+Las dos salidas comparten las capas convolucionales. Se entrenan juntas con pérdida MSE para la vulnerabilidad y entropía cruzada binaria para el perfil de refuerzo (peso 0,5). Un usuario puede necesitar varios refuerzos a la vez.
+
+| Perfil de refuerzo (salida 2) | Qué detecta la red | Qué hace la aplicación |
+|---|---|---|
+| Refuerzo teórico | Falla mucho en al menos un vector | Recomienda el curso del vector y una misión Básico en la dinámica Cazador de Red Flags |
+| Entrenar bajo presión | Decide de forma impulsiva, con poco tiempo | Recomienda la misión con menor tiempo límite en Reacción Táctica |
+| Pasar de ignorar a reportar | Casi nunca reporta las amenazas | Recomienda practicar en la dinámica Escudo de Respuesta |
+| Subir de dificultad | Ya domina los escenarios básicos | Recomienda una misión Avanzado en el Inspector de URLs |
 
 Se eligió una red convolucional porque el historial del usuario es una **secuencia ordenada**: los filtros recorren ventanas de 3 y 5 interacciones consecutivas y detectan patrones locales, como varios fallos seguidos en un mismo vector o respuestas muy rápidas que terminan en caída. El puntaje global es el promedio de los cuatro vectores y el nivel se obtiene con los mismos umbrales del perfil (menos de 40 bajo, 40 a 59 medio, 60 o más alto).
 
@@ -605,32 +616,41 @@ Ejemplo de solicitud:
 }
 ```
 
-**Respuesta que genera** (salida real del modelo incluido para esa solicitud):
+**Respuesta que genera** (salida real del modelo incluido para esa solicitud, recortada):
 
 ```json
 {
-  "puntaje": 47,
+  "puntaje": 51,
   "nivel": "Medio",
-  "riesgo_por_vector": {"Phishing": 25, "Smishing": 43, "Vishing": 67, "Ing. Social": 54},
+  "riesgo_por_vector": {"Phishing": 34, "Smishing": 42, "Vishing": 69, "Ing. Social": 59},
+  "perfil_refuerzo": {"teoria": 0.847, "presion": 0.7, "reportar": 0.383, "avanzar": 0.006},
+  "refuerzos": [
+    {"tipo": "teoria", "probabilidad": 0.847, "confianza": "alta"},
+    {"tipo": "presion", "probabilidad": 0.7, "confianza": "alta"},
+    {"tipo": "reportar", "probabilidad": 0.383, "confianza": "media"}
+  ],
   "vectores_prioritarios": ["Vishing", "Smishing"],
   "vectores_sin_practica": ["Ing. Social"],
   "interacciones_analizadas": 6,
-  "modelo": "cnn1d-v1",
+  "modelo": "cnn1d-v2",
   "recomendaciones": [
-    {"icono": "fa-shield-halved", "color": "text-warning", "texto": "Vulnerabilidad moderada (47%). Refuerza vishing (llamadas), donde tu riesgo estimado es 67%."},
-    {"icono": "fa-book-open", "color": "text-primary", "texto": "Empieza por el curso de vishing (llamadas) y repite su examen antes de volver al simulador."}
+    {"icono": "fa-shield-halved", "color": "text-warning", "texto": "Vulnerabilidad moderada (51%). Refuerza vishing (llamadas), donde tu riesgo estimado es 69%."},
+    {"icono": "fa-stopwatch", "color": "text-warning", "titulo": "Entrenar bajo presión", "origen": "red_neuronal", "confianza": "alta",
+     "texto": "Tus decisiones muestran un patrón de respuestas apresuradas. Antes de actuar, revisa el remitente y el destino del enlace; practica una misión de vishing (llamadas) con tiempo límite."}
   ]
 }
 ```
+
+Con dos caídas rápidas en vishing, la red detecta tanto el vector débil (69 %) como el patrón de respuestas apresuradas. Cada refuerzo se activa cuando su probabilidad supera un umbral ajustado durante el entrenamiento; la confianza es "alta" cuando la supera por 0,25 o más. Al responder al navegador, el backend agrega `misiones_recomendadas` (con la dinámica sugerida) y `cursos_recomendados`.
 
 ### 12.5. Cómo utiliza la aplicación el resultado
 
 | Dónde | Uso del resultado |
 |---|---|
 | Base de datos | Cada análisis se guarda en `Analisis_IA` y el puntaje reemplaza a `Usuarios.nivel_vulnerabilidad`. |
-| Resultados de la simulación (`#/resultados`) | Tarjeta "Análisis del Servicio de IA" con el nivel, el riesgo por vector, las recomendaciones y los cursos sugeridos; el registro de telemetría incluye la línea `[SERVICIO DE IA]`. |
+| Resultados de la simulación (`#/resultados`) | Tarjeta "Análisis del Servicio de IA" con el nivel, el plan de refuerzo detectado por la red, el riesgo por vector, las recomendaciones (las que decidió la red llevan la insignia "Red neuronal · confianza"), las misiones recomendadas con su dinámica y los cursos sugeridos. El registro de telemetría incluye la línea `[SERVICIO DE IA]`. |
 | Examen de un curso (`#/aprendizaje`) | Tras calificar, muestra el nivel estimado y la recomendación principal. |
-| Perfil (`#/perfil`) | La gráfica por vector, el estado de seguridad y las recomendaciones provienen del análisis de IA, junto con los cursos sugeridos. |
+| Perfil (`#/perfil`) | La gráfica por vector, el estado de seguridad y las recomendaciones provienen del análisis de IA, junto con el plan de refuerzo, las misiones y los cursos sugeridos. Un botón de misión abre el simulador directamente en la dinámica recomendada. |
 | Gestión (`#/gestion`) | Botón **Sugerir Curso con IA** (pestaña de cursos) y **Sugerir Misión con IA** (pestaña de simuladores): abren el formulario correspondiente precargado con el borrador para que el administrador lo apruebe. La tabla de usuarios muestra la vulnerabilidad estimada por la red. |
 
 ### 12.5.1. Borradores de misión para el simulador
@@ -654,23 +674,35 @@ El escenario sale de `ia-service/app/plantillas_misiones.py`, con 12 escenarios 
 
 ### 12.7. Datos de entrenamiento y desempeño del modelo
 
-La plataforma aún no cuenta con suficientes usuarios reales para entrenar un modelo, por lo que la red se entrenó con **datos sintéticos** generados por `ia-service/entrenamiento/generar_dataset.py`. El generador simula 50.000 perfiles de usuario (40.000 de entrenamiento, 5.000 de validación y 5.000 de prueba). Cada perfil tiene una vulnerabilidad oculta por vector, a partir de la cual se simula su historial con estos supuestos:
+La plataforma aún no cuenta con suficientes usuarios reales para entrenar un modelo, por lo que la red se entrenó con **datos sintéticos** generados por `ia-service/entrenamiento/generar_dataset.py`. El generador simula 50.000 perfiles de usuario (40.000 de entrenamiento, 5.000 de validación y 5.000 de prueba). Cada perfil tiene rasgos ocultos: vulnerabilidad por vector, impulsividad (qué tan rápido decide) y proactividad (qué tanto reporta). A partir de ellos se simula su historial con estos supuestos:
 
 - A mayor vulnerabilidad en un vector, mayor probabilidad de caer o fallar.
-- Los escenarios más difíciles y las respuestas con mucha prisa aumentan la probabilidad de fallo.
+- Los escenarios más difíciles y las respuestas con mucha prisa aumentan la probabilidad de fallo; los usuarios impulsivos responden más rápido.
+- Quien no cae reporta o solo ignora según su proactividad.
 - Cada práctica reduce un poco la vulnerabilidad, por lo que las interacciones recientes pesan más.
 
-La red aprende a recuperar la vulnerabilidad oculta observando solo el historial. Resultados sobre los 5.000 perfiles de prueba (`ia-service/modelos/metricas.json`), comparados con una regla simple de referencia (tasa de fallos por vector):
+El perfil de refuerzo verdadero se define a partir de esos rasgos: refuerzo teórico si la vulnerabilidad de algún vector es 0,60 o más, entrenar bajo presión si la impulsividad es 0,60 o más, reportar si la proactividad es menor de 0,45 y subir de dificultad si la vulnerabilidad de todos los vectores es menor de 0,35. La red aprende a recuperar esos rasgos observando solo el historial.
 
-| Métrica | Red convolucional | Regla de referencia |
+Resultados sobre los 5.000 perfiles de prueba (`ia-service/modelos/metricas.json`), comparados con reglas simples de referencia:
+
+| Métrica de la salida 1 (vulnerabilidad) | Red convolucional | Regla de referencia (tasa de fallos) |
 |---|---|---|
-| Error medio por vector (puntos sobre 100) | 15,9 | 22,6 |
-| Error medio del puntaje global (puntos sobre 100) | 10,0 | 13,0 |
-| Exactitud del nivel (bajo / medio / alto) | 66,6 % | 60,0 % |
+| Error medio por vector (puntos sobre 100) | 16,5 | 22,6 |
+| Error medio del puntaje global (puntos sobre 100) | 10,2 | 12,1 |
+| Exactitud del nivel (bajo / medio / alto) | 64,8 % | 62,5 % |
 
-Los errores graves (clasificar como bajo a un usuario de nivel alto, o al revés) ocurren en el 1,5 % de los casos.
+Los errores graves (clasificar como bajo a un usuario de nivel alto, o al revés) ocurren en el 1,2 % de los casos.
 
-**Limitaciones.** Estas métricas describen el desempeño frente al simulador, no frente a personas reales: el modelo es tan válido como los supuestos anteriores. Con pocas interacciones la estimación es poco precisa, y en los vectores que el usuario no ha practicado la red solo puede suponer un valor (la aplicación lo indica como "sin práctica aún"). El resultado tiene fines formativos y no debe usarse para evaluar o sancionar a una persona.
+| Salida 2: F1 por perfil (0 a 1) | Red convolucional | Regla de referencia |
+|---|---|---|
+| Refuerzo teórico | 0,850 | 0,837 (peor tasa de fallos) |
+| Entrenar bajo presión | 0,675 | 0,680 (tiempo medio de respuesta) |
+| Pasar de ignorar a reportar | 0,644 | 0,636 (proporción de veces que solo ignoró) |
+| Subir de dificultad | 0,509 | 0,485 (dominio del peor vector) |
+
+Para que la comparación sea justa, el umbral de decisión de cada perfil se ajustó con los datos de validación con el mismo método para la red y para las reglas. La red supera ligeramente a las reglas en teoría, reportar y subir de dificultad, y queda prácticamente empatada en entrenar bajo presión (0,675 frente a 0,680), todo con un solo modelo y sin reglas escritas a mano para cada caso. La ventaja es pequeña porque en estos datos simulados una estadística simple ya captura buena parte de la señal. Si la red aporta más con datos reales es algo que debe comprobarse cuando la plataforma tenga historial suficiente.
+
+**Limitaciones.** Estas métricas describen el desempeño frente al simulador, no frente a personas reales: el modelo es tan válido como los supuestos anteriores. El perfil de refuerzo tiene una precisión moderada (cerca de la mitad de las veces que activa "entrenar bajo presión" o "reportar" el usuario no lo necesitaba en realidad), por eso se presenta como sugerencia con su nivel de confianza. Con pocas interacciones la estimación es poco precisa, y en los vectores que el usuario no ha practicado la red solo puede suponer un valor (la aplicación lo indica como "sin práctica aún"). El resultado tiene fines formativos y no debe usarse para evaluar o sancionar a una persona.
 
 Para reentrenar el modelo:
 
@@ -681,7 +713,7 @@ python -m entrenamiento.entrenar
 
 ### 12.8. Evidencia de funcionamiento
 
-**Pruebas automáticas del servicio** (11 pruebas: matriz de entrada, estado, usuario vulnerable frente a usuario seguro, detección del vector débil, validaciones, borrador de curso y borrador de misión):
+**Pruebas automáticas del servicio** (15 pruebas: matriz de entrada, estado, usuario vulnerable frente a usuario seguro, detección del vector débil, perfil de refuerzo para usuarios impulsivos, pasivos y expertos, validaciones, borrador de curso y borrador de misión):
 
 ```bash
 cd ia-service
@@ -690,14 +722,14 @@ python -m pytest -q
 
 ```text
 ........                                                                 [100%]
-11 passed
+15 passed
 ```
 
 **Pruebas de integración realizadas** (aplicación → backend → servicio de IA → base de datos → interfaz):
 
 | ID | Prueba | Resultado esperado | Estado |
 |---|---|---|---|
-| IA-01 | `GET /api/ia/estado` con el servicio encendido | `disponible: true`, modelo `cnn1d-v1` y métricas | Aprobada |
+| IA-01 | `GET /api/ia/estado` con el servicio encendido | `disponible: true`, modelo `cnn1d-v2` y métricas | Aprobada |
 | IA-02 | Usuario cae en 6 simulaciones seguidas | La respuesta de `/evaluar` incluye `ia.nivel = "Alto"` y se guarda en `Analisis_IA` | Aprobada |
 | IA-03 | Usuario reporta 6 simulaciones y aprueba un examen | `ia.nivel = "Bajo"` | Aprobada |
 | IA-04 | Examen de curso con respuestas por pregunta | Las respuestas se guardan en `Respuestas_Quiz` y entran al análisis | Aprobada |
@@ -710,6 +742,10 @@ python -m pytest -q
 | IA-11 | Administrador solicita sugerencia de misión para un grupo que cae respondiendo con prisa | Misión del vector más débil, dificultad según el riesgo y tiempo límite reducido; al publicarla queda con origen `Servicio IA` | Aprobada |
 | IA-12 | Segunda sugerencia de misión para el mismo grupo | No repite el escenario ya publicado; propone el del nivel más cercano | Aprobada |
 | IA-13 | Misión sugerida abierta en el simulador | Funciona en las cinco dinámicas | Aprobada |
+| IA-14 | Usuario que cae rápido en todas las misiones | Refuerzos: entrenar bajo presión y refuerzo teórico; misión con menor tiempo en Reacción Táctica | Aprobada |
+| IA-15 | Usuario que no cae pero solo ignora | Refuerzo: pasar de ignorar a reportar; misión en Escudo de Respuesta | Aprobada |
+| IA-16 | Usuario que reporta todo | Refuerzo: subir de dificultad; misión Avanzado | Aprobada |
+| IA-17 | Botón de misión recomendada | Abre el simulador en esa misión y en la dinámica sugerida | Aprobada |
 
 **Capturas de la versión final:** agregar en la carpeta `Evidencias/` las capturas de la tarjeta de IA en resultados, el perfil, el borrador sugerido en gestión, `http://localhost:8000/docs` y la consola del backend con el mensaje de conexión.
 
